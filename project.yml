@@ -1,0 +1,161 @@
+name: ALIVE
+
+options:
+  bundleIdPrefix: cn.bobochang
+  deploymentTarget:
+    iOS: "26.0"
+  createIntermediateGroups: true
+  developmentLanguage: zh-Hans
+
+settings:
+  base:
+    SWIFT_VERSION: "6.0"
+    SWIFT_STRICT_CONCURRENCY: complete
+    IPHONEOS_DEPLOYMENT_TARGET: "26.0"
+    TARGETED_DEVICE_FAMILY: "1"
+    CURRENT_PROJECT_VERSION: "1"
+    MARKETING_VERSION: "1.0.0"
+    GENERATE_INFOPLIST_FILE: NO
+    ENABLE_USER_SCRIPT_SANDBOXING: YES
+    CLANG_ENABLE_MODULES: YES
+    SWIFT_EMIT_LOC_STRINGS: YES
+
+targets:
+  AliveCore:
+    type: framework
+    platform: iOS
+    sources:
+      - path: AliveCore
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: cn.bobochang.alivecore
+        PRODUCT_NAME: AliveCore
+        MACH_O_TYPE: staticlib
+        SKIP_INSTALL: YES
+        DEFINES_MODULE: YES
+        GENERATE_INFOPLIST_FILE: YES
+        APPLICATION_EXTENSION_API_ONLY: YES
+        CODE_SIGNING_ALLOWED: NO
+
+  Alive:
+    type: application
+    platform: iOS
+    sources:
+      - path: Alive
+      - path: Shared/Intents
+    dependencies:
+      - target: AliveCore
+        embed: false
+      - target: AliveWidgets
+        embed: true
+    entitlements:
+      path: Alive/Alive.entitlements
+      properties:
+        com.apple.security.application-groups:
+          - group.cn.bobochang.alive
+    info:
+      path: Alive/Info.plist
+      properties:
+        CFBundleDisplayName: ALIVE
+        CFBundleName: ALIVE
+        CFBundleShortVersionString: $(MARKETING_VERSION)
+        CFBundleVersion: $(CURRENT_PROJECT_VERSION)
+        LSApplicationCategoryType: public.app-category.finance
+        UILaunchScreen: {}
+        UISupportedInterfaceOrientations:
+          - UIInterfaceOrientationPortrait
+        ITSAppUsesNonExemptEncryption: false
+        NSSupportsLiveActivities: true
+        UIAppFonts:
+          - Gloock-Regular.ttf
+          - Commissioner-Regular.ttf
+          - Commissioner-Medium.ttf
+          - Commissioner-SemiBold.ttf
+          - Commissioner-Bold.ttf
+        CFBundleURLTypes:
+          - CFBundleURLName: cn.bobochang.alive
+            CFBundleURLSchemes:
+              - alive
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: cn.bobochang.alive
+        PRODUCT_NAME: ALIVE
+        INFOPLIST_KEY_CFBundleDisplayName: ALIVE
+        ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME: AccentColor
+        ENABLE_PREVIEWS: YES
+        CODE_SIGN_ENTITLEMENTS: Alive/Alive.entitlements
+
+  AliveWidgets:
+    type: app-extension
+    platform: iOS
+    sources:
+      - path: AliveWidgets
+      - path: Shared/Intents
+    resources:
+      - path: Alive/Resources/Fonts
+      - path: Alive/Resources/Licenses
+      - path: Alive/Resources/PrivacyInfo.xcprivacy
+    dependencies:
+      - target: AliveCore
+        embed: false
+    entitlements:
+      path: AliveWidgets/AliveWidgets.entitlements
+      properties:
+        com.apple.security.application-groups:
+          - group.cn.bobochang.alive
+    info:
+      path: AliveWidgets/Info.plist
+      properties:
+        CFBundleDisplayName: ALIVE Widgets
+        CFBundleShortVersionString: $(MARKETING_VERSION)
+        CFBundleVersion: $(CURRENT_PROJECT_VERSION)
+        NSExtension:
+          NSExtensionPointIdentifier: com.apple.widgetkit-extension
+        UIAppFonts:
+          - Gloock-Regular.ttf
+          - Commissioner-Regular.ttf
+          - Commissioner-Medium.ttf
+          - Commissioner-SemiBold.ttf
+          - Commissioner-Bold.ttf
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: cn.bobochang.alive.widgets
+        PRODUCT_NAME: ALIVE Widgets
+        SKIP_INSTALL: YES
+        APPLICATION_EXTENSION_API_ONLY: YES
+        CODE_SIGN_ENTITLEMENTS: AliveWidgets/AliveWidgets.entitlements
+        LD_RUNPATH_SEARCH_PATHS:
+          - $(inherited)
+          - "@executable_path/Frameworks"
+          - "@executable_path/../../Frameworks"
+
+  AliveTests:
+    type: bundle.unit-test
+    platform: iOS
+    sources:
+      - path: AliveTests
+    dependencies:
+      - target: AliveCore
+        embed: false
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: cn.bobochang.alive.tests
+        GENERATE_INFOPLIST_FILE: YES
+        CODE_SIGNING_ALLOWED: NO
+
+schemes:
+  Alive:
+    build:
+      targets:
+        Alive: all
+        AliveWidgets: all
+        AliveCore: all
+        AliveTests: [test]
+    run:
+      config: Debug
+    test:
+      config: Debug
+      targets:
+        - AliveTests
+    archive:
+      config: Release
