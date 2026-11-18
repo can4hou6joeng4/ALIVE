@@ -32,6 +32,15 @@ public struct ProjectedBudget: Hashable, Sendable {
         self.payday = payday
         self.needsBalanceReview = needsBalanceReview
     }
+
+    public var displayState: BudgetDisplayState {
+        BudgetDisplayState(
+            phase: phase,
+            todayBudgetCents: todayBudgetCents,
+            todayAvailableCents: todayAvailableCents,
+            currentBalanceCents: currentBalanceCents
+        )
+    }
 }
 
 public extension BudgetSnapshot {

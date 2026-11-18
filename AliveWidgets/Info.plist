@@ -25,13 +25,5 @@
 		<key>NSExtensionPointIdentifier</key>
 		<string>com.apple.widgetkit-extension</string>
 	</dict>
-	<key>UIAppFonts</key>
-	<array>
-		<string>Gloock-Regular.ttf</string>
-		<string>Commissioner-Regular.ttf</string>
-		<string>Commissioner-Medium.ttf</string>
-		<string>Commissioner-SemiBold.ttf</string>
-		<string>Commissioner-Bold.ttf</string>
-	</array>
 </dict>
 </plist>

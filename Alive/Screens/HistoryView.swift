@@ -5,6 +5,7 @@ struct HistoryView: View {
     let model: AppModel
     @State private var expenseToDelete: Expense?
     @State private var expandedArchived: Set<UUID> = []
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
 
     private let calendar = BudgetCalendar()
 
@@ -18,10 +19,7 @@ struct HistoryView: View {
     }
 
     var body: some View {
-        ZStack {
-            OrreryBackground()
-
-            List {
+        List {
                 currentCycleSummary
 
                 if model.currentExpenses.isEmpty {
@@ -51,11 +49,10 @@ struct HistoryView: View {
             .listStyle(.plain)
             .scrollContentBackground(.hidden)
             .environment(\.defaultMinListRowHeight, 44)
-        }
+            .scrollEdgeEffectStyle(.soft, for: .top)
+            .background(AliveColor.canvas)
         .navigationTitle("本周期记录")
         .navigationBarTitleDisplayMode(.inline)
-        .toolbarBackground(AliveColor.canvas, for: .navigationBar)
-        .toolbarBackground(.visible, for: .navigationBar)
         .alert(
             "删除这笔支出？",
             isPresented: Binding(
@@ -114,12 +111,13 @@ struct HistoryView: View {
             .tracking(1.4)
             .foregroundStyle(AliveColor.inkTertiary)
             .textCase(nil)
+            .accessibilityAddTraits(.isHeader)
             .listRowInsets(
                 EdgeInsets(
                     top: AliveSpace.x2,
-                    leading: 0,
+                    leading: AliveSpace.pageInset,
                     bottom: AliveSpace.x1,
-                    trailing: 0
+                    trailing: AliveSpace.pageInset
                 )
             )
     }
@@ -130,33 +128,49 @@ struct HistoryView: View {
             .tracking(1.4)
             .foregroundStyle(AliveColor.inkTertiary)
             .textCase(nil)
+            .accessibilityAddTraits(.isHeader)
             .padding(.top, AliveSpace.x4)
     }
 
+    @ViewBuilder
     private func expenseRow(_ expense: Expense, editable: Bool) -> some View {
-        HStack(alignment: .firstTextBaseline, spacing: AliveSpace.x3) {
-            Text(AliveDateText.time(expense.occurredAt))
-                .font(AliveFont.sans(12, weight: .medium, relativeTo: .caption))
-                .foregroundStyle(AliveColor.inkTertiary)
-                .monospacedDigit()
-                .frame(width: 44, alignment: .leading)
+        let noteText = expense.note ?? "支出"
+        let amountText = "-\(MoneyFormatter.currency(cents: expense.amountCents))"
+        let timeText = AliveDateText.time(expense.occurredAt)
 
-            Text(expense.note ?? "支出")
-                .font(AliveFont.sans(15, weight: .medium, relativeTo: .body))
-                .foregroundStyle(AliveColor.ink)
-                .lineLimit(1)
+        Group {
+            if dynamicTypeSize.isAccessibilitySize {
+                VStack(alignment: .leading, spacing: AliveSpace.x1) {
+                    HStack(alignment: .firstTextBaseline, spacing: AliveSpace.x2) {
+                        timeLabel(timeText)
+                        Spacer(minLength: AliveSpace.x2)
+                        amountLabel(amountText)
+                    }
+                    Text(noteText)
+                        .font(AliveFont.sans(15, weight: .medium, relativeTo: .body))
+                        .foregroundStyle(AliveColor.ink)
+                        .lineLimit(2)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+            } else {
+                HStack(alignment: .firstTextBaseline, spacing: AliveSpace.x3) {
+                    timeLabel(timeText)
 
-            Spacer(minLength: AliveSpace.x2)
+                    Text(noteText)
+                        .font(AliveFont.sans(15, weight: .medium, relativeTo: .body))
+                        .foregroundStyle(AliveColor.ink)
+                        .lineLimit(1)
 
-            Text("-\(MoneyFormatter.currency(cents: expense.amountCents))")
-                .font(AliveFont.sans(15, weight: .semibold, relativeTo: .body))
-                .foregroundStyle(AliveColor.ink)
-                .monospacedDigit()
+                    Spacer(minLength: AliveSpace.x2)
+
+                    amountLabel(amountText)
+                }
+            }
         }
         .padding(.vertical, AliveSpace.x1)
         .listRowBackground(Color.clear)
         .listRowSeparator(.hidden)
-        .overlay(alignment: .bottom) { BrassRule(subtle: true) }
+        .overlay(alignment: .bottom) { Rectangle().fill(AliveColor.separator).frame(height: 0.5) }
         .swipeActions(edge: .trailing, allowsFullSwipe: false) {
             if editable {
                 Button(role: .destructive) {
@@ -170,11 +184,31 @@ struct HistoryView: View {
                 } label: {
                     Label("编辑", systemImage: "pencil")
                 }
-                .tint(AliveColor.brass)
+                .tint(AliveColor.accent)
             }
         }
-        .accessibilityElement(children: .combine)
-        .accessibilityLabel("\(AliveDateText.time(expense.occurredAt))，\(expense.note ?? "支出")，\(MoneyFormatter.spoken(cents: Decimal(expense.amountCents)))")
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel("\(timeText)，\(noteText)，\(MoneyFormatter.spoken(cents: Decimal(expense.amountCents)))")
+        .accessibilityHint(editable ? "可编辑或删除。" : "归档周期只读。")
+    }
+
+    private func timeLabel(_ text: String) -> some View {
+        Text(text)
+            .font(AliveFont.sans(12, weight: .medium, relativeTo: .caption))
+            .foregroundStyle(AliveColor.inkTertiary)
+            .monospacedDigit()
+            .lineLimit(1)
+            .fixedSize(horizontal: true, vertical: false)
+            .frame(minWidth: 44, alignment: .leading)
+    }
+
+    private func amountLabel(_ text: String) -> some View {
+        Text(text)
+            .font(AliveFont.sans(15, weight: .semibold, relativeTo: .body))
+            .foregroundStyle(AliveColor.ink)
+            .monospacedDigit()
+            .lineLimit(1)
+            .fixedSize(horizontal: true, vertical: false)
     }
 
     private func archivedCycle(_ cycle: ArchivedCycleSummary) -> some View {
@@ -211,7 +245,7 @@ struct HistoryView: View {
             }
             .padding(.vertical, AliveSpace.x1)
         }
-        .tint(AliveColor.brass)
+        .tint(AliveColor.accent)
         .listRowBackground(Color.clear)
         .listRowSeparator(.hidden)
     }

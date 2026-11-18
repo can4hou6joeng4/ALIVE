@@ -4,333 +4,411 @@ import SwiftUI
 struct TodayView: View {
     let model: AppModel
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+    @AccessibilityFocusState private var isSettingsButtonFocused: Bool
 
     var body: some View {
-        ZStack {
-            OrreryBackground()
+        ScrollView {
+            VStack(alignment: .leading, spacing: AliveSpace.x5) {
+                if let snapshot = model.snapshot {
+                    dateHeader(snapshot)
 
-            ScrollView {
-                VStack(alignment: .leading, spacing: AliveSpace.x4) {
-                    pageHeader
+                    if snapshot.needsBalanceReview, snapshot.phase != .pending {
+                        BalanceReviewBanner { model.openBalance() }
+                    }
 
-                    if let snapshot = model.snapshot {
-                        contextLine(snapshot)
+                    heroCard(snapshot)
 
-                        if snapshot.needsBalanceReview, snapshot.phase != .pending {
-                            BalanceReviewBanner {
-                                model.openBalance()
-                            }
-                        }
+                    if snapshot.phase != .pending && !model.currentExpenses.isEmpty {
+                        recentExpensesCard
+                    }
 
-                        HeroBudgetCard(
-                            snapshot: snapshot,
-                            activityStatus: model.activity.status,
-                            onPrimary: {
-                                if snapshot.phase == .pending {
-                                    model.openSettings()
-                                } else {
-                                    model.openQuickExpense()
-                                }
-                            },
-                            onActivity: {
-                                Task { await model.toggleLiveActivity() }
-                            }
-                        )
-                        .animation(reduceMotion ? nil : AliveMotion.value, value: snapshot.generatedAt)
+                    if snapshot.phase == .pending {
+                        pendingNote
+                    }
+                } else {
+                    ProgressView()
+                        .frame(maxWidth: .infinity)
+                        .padding(.top, AliveSpace.x10)
+                }
+            }
+            .padding(.horizontal, AliveSpace.pageInset)
+            .padding(.top, AliveSpace.x3)
+            .padding(.bottom, AliveSpace.x6)
+        }
+        .scrollEdgeEffectStyle(.soft, for: .top)
+        .background(AliveColor.canvas)
+        .safeAreaInset(edge: .bottom, spacing: 0) {
+            if let snapshot = model.snapshot {
+                bottomActionBar(snapshot)
+                    .opacity(model.isSettingsPresented ? 0 : 1)
+            }
+        }
+        .toolbar {
+            if !model.isSettingsPresented {
+                ToolbarItem(placement: .topBarLeading) {
+                    GlassIconButton(
+                        systemName: "line.3.horizontal",
+                        accessibilityLabel: "设置",
+                        accessibilityHint: "打开设置，也可以从屏幕左边缘向右轻扫。"
+                    ) {
+                        model.openSettings()
+                    }
+                    .accessibilityFocused($isSettingsButtonFocused)
+                }
 
-                        if snapshot.phase == .pending {
-                            pendingFootnote
-                        } else {
-                            historyLink(snapshot)
-                        }
-                    } else {
-                        ProgressView()
-                            .tint(AliveColor.brass)
-                            .frame(maxWidth: .infinity)
-                            .padding(.top, AliveSpace.x8)
+                ToolbarItem(placement: .topBarTrailing) {
+                    GlassIconButton(
+                        systemName: "waveform",
+                        accessibilityLabel: activityActionLabel(for: model.snapshot),
+                        accessibilityValue: model.activity.statusText,
+                        accessibilityHint: "单次最长约 8 小时，跨午夜或到发薪日后需要重新开启。",
+                        isEnabled: isActivityControlEnabled(for: model.snapshot)
+                    ) {
+                        Task { await model.toggleLiveActivity() }
                     }
                 }
-                .padding(.horizontal, AliveSpace.pageInset)
-                .padding(.top, AliveSpace.x2)
-                .padding(.bottom, AliveSpace.x8)
             }
         }
-        .toolbar(.hidden, for: .navigationBar)
-    }
-
-    private var pageHeader: some View {
-        HStack(spacing: AliveSpace.x2) {
-            HStack(spacing: AliveSpace.x2) {
-                OrnamentalRingMark()
-                Text("ALIVE")
-                    .font(AliveFont.sans(14, weight: .semibold, relativeTo: .headline))
-                    .tracking(3)
-                    .foregroundStyle(AliveColor.ink)
-            }
-
-            Spacer()
-
-            IconAction(
-                systemName: model.activity.isActive ? "record.circle.fill" : "record.circle",
-                accessibilityLabel: model.activity.statusText
-            ) {
-                Task { await model.toggleLiveActivity() }
-            }
-
-            IconAction(systemName: "gearshape", accessibilityLabel: "设置") {
-                model.openSettings()
+        .onChange(of: model.isSettingsPresented) { _, presented in
+            if !presented {
+                Task { @MainActor in
+                    try? await Task.sleep(for: .milliseconds(250))
+                    isSettingsButtonFocused = true
+                }
             }
         }
-        .padding(.top, AliveSpace.x1)
+        .simultaneousGesture(
+            DragGesture(minimumDistance: 20, coordinateSpace: .global)
+                .onEnded { value in
+                    guard value.startLocation.x <= 24,
+                          value.translation.width >= 72,
+                          abs(value.translation.height) <= value.translation.width * 0.6
+                    else { return }
+                    model.openSettings()
+                }
+        )
     }
 
-    private func contextLine(_ snapshot: BudgetSnapshot) -> some View {
-        HStack(spacing: AliveSpace.x2) {
-            if snapshot.phase == .pending {
-                Text("星盘将在 \(AliveDateText.monthDay(snapshot.startDate)) 启动")
-            } else {
+    private func dateHeader(_ snapshot: BudgetSnapshot) -> some View {
+        VStack(alignment: .leading, spacing: AliveSpace.x1) {
+            Text(snapshot.phase == .pending ? "周期尚未开始" : "今天")
+                .font(AliveFont.sans(13, weight: .semibold, relativeTo: .footnote))
+                .foregroundStyle(AliveColor.inkTertiary)
+            HStack(alignment: .firstTextBaseline, spacing: AliveSpace.x3) {
                 Text(AliveDateText.monthDay(Date()))
-                Text("·")
-                    .foregroundStyle(AliveColor.brass)
-                Text("距发薪 \(snapshot.daysRemaining) 天")
+                    .font(.system(size: 28, weight: .bold))
+                    .foregroundStyle(AliveColor.ink)
+                if snapshot.phase != .pending {
+                    StatusPill(title: snapshot.displayState.isOverspent ? "已超支" : "距发薪 \(snapshot.daysRemaining) 天",
+                               isEmphasized: snapshot.displayState.isOverspent)
+                }
             }
-            Spacer()
-            CycleBadge(phase: snapshot.phase)
         }
-        .font(AliveFont.sans(13, weight: .medium, relativeTo: .footnote))
-        .foregroundStyle(AliveColor.inkSecondary)
         .accessibilityElement(children: .combine)
     }
 
-    private func historyLink(_ snapshot: BudgetSnapshot) -> some View {
-        Button {
-            model.openHistory()
-        } label: {
-            HStack(spacing: AliveSpace.x3) {
-                VStack(alignment: .leading, spacing: AliveSpace.x1) {
-                    Text("本周期记录")
-                        .font(AliveFont.sans(15, weight: .semibold, relativeTo: .body))
-                        .foregroundStyle(AliveColor.ink)
-                    Text("\(model.currentExpenses.count) 笔 · 合计 \(MoneyFormatter.currency(cents: model.currentExpenses.reduce(0) { $0 + $1.amountCents }))")
-                        .font(AliveFont.sans(12, relativeTo: .caption))
-                        .foregroundStyle(AliveColor.inkTertiary)
+    private func heroCard(_ snapshot: BudgetSnapshot) -> some View {
+        let state = snapshot.displayState
+        return SurfaceCard {
+            VStack(alignment: .leading, spacing: AliveSpace.x5) {
+                VStack(alignment: .leading, spacing: AliveSpace.x2) {
+                    Text(state.label)
+                        .font(AliveFont.sans(15, weight: .semibold, relativeTo: .subheadline))
+                        .foregroundStyle(state.isOverspent ? AliveColor.overspend : AliveColor.inkSecondary)
+                        .accessibilityHidden(true)
+
+                    AmountText(
+                        cents: state.amountCents,
+                        size: 62,
+                        color: state.isOverspent ? AliveColor.overspend : AliveColor.ink
+                    )
+                    .accessibilityLabel(heroAccessibilityLabel(state))
+                    .accessibilityAddTraits(.isHeader)
                 }
-                Spacer()
-                Image(systemName: "chevron.right")
-                    .font(.system(size: 13, weight: .semibold))
-                    .foregroundStyle(AliveColor.brass)
-            }
-            .padding(.vertical, AliveSpace.x3)
-            .frame(minHeight: 54)
-            .contentShape(Rectangle())
-        }
-        .buttonStyle(.plain)
-        .overlay(alignment: .bottom) {
-            BrassRule()
-        }
-        .accessibilityLabel("本周期记录，\(model.currentExpenses.count) 笔支出")
-    }
 
-    private var pendingFootnote: some View {
-        HStack(alignment: .top, spacing: AliveSpace.x2) {
-            Image(systemName: "moon.stars")
-                .foregroundStyle(AliveColor.brass)
-                .padding(.top, 2)
-            Text("起始日前不能记支出，也不能开启灵动岛。日期与初始余额仍可在设置中调整。")
-                .font(AliveFont.sans(13, relativeTo: .footnote))
-                .lineSpacing(5)
-                .foregroundStyle(AliveColor.inkTertiary)
-        }
-        .padding(.horizontal, AliveSpace.x1)
-    }
-}
+                Divider().overlay(AliveColor.separator)
 
-private struct HeroBudgetCard: View {
-    let snapshot: BudgetSnapshot
-    let activityStatus: BudgetActivityController.Status
-    let onPrimary: () -> Void
-    let onActivity: () -> Void
-    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
-
-    private var isOverspent: Bool {
-        snapshot.phase == .overspent
-    }
-
-    private var isPending: Bool {
-        snapshot.phase == .pending
-    }
-
-    private var displayAmount: Decimal {
-        if isPending {
-            return snapshot.todayBudgetCents
-        }
-        if isOverspent, snapshot.todayAvailableCents < 0 {
-            return -snapshot.todayAvailableCents
-        }
-        return max(0, snapshot.todayAvailableCents)
-    }
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: AliveSpace.x4) {
-            HStack(alignment: .center) {
-                Text(sectionLabel)
-                    .font(AliveFont.sans(13, weight: .semibold, relativeTo: .footnote))
-                    .tracking(1)
-                    .foregroundStyle(isOverspent ? AliveColor.overspend : AliveColor.inkSecondary)
-                Spacer()
-                Text(isPending ? "预计每日额度" : "今日预算 \(MoneyFormatter.currency(cents: snapshot.todayBudgetCents))")
-                    .font(AliveFont.sans(11, weight: .medium, relativeTo: .caption2))
-                    .foregroundStyle(AliveColor.inkTertiary)
-                    .monospacedDigit()
-            }
-
-            if dynamicTypeSize.isAccessibilitySize {
                 VStack(alignment: .leading, spacing: AliveSpace.x3) {
-                    amountBlock
-                    ring
+                    if snapshot.phase == .pending {
+                        infoRow("预计每日额度", MoneyFormatter.currency(cents: snapshot.todayBudgetCents))
+                        infoRow("起始余额", MoneyFormatter.currency(cents: snapshot.currentBalanceCents))
+                        infoRow("距开始", "\(snapshot.daysRemaining) 天")
+                    } else {
+                        if dynamicTypeSize.isAccessibilitySize {
+                            VStack(alignment: .leading, spacing: AliveSpace.x1) {
+                                Text("今日预算")
+                                    .font(AliveFont.sans(14, weight: .medium, relativeTo: .subheadline))
+                                    .foregroundStyle(AliveColor.inkSecondary)
+                                HStack(alignment: .firstTextBaseline, spacing: AliveSpace.x2) {
+                                    Text(MoneyFormatter.currency(cents: snapshot.todayBudgetCents))
+                                        .font(AliveFont.sans(15, weight: .semibold, relativeTo: .subheadline))
+                                        .monospacedDigit()
+                                        .foregroundStyle(AliveColor.ink)
+                                        .minimumScaleFactor(0.75)
+                                    Spacer(minLength: AliveSpace.x2)
+                                    Text("\(Int((progressRatio(snapshot) * 100).rounded()))%")
+                                        .font(AliveFont.sans(12, weight: .medium, relativeTo: .footnote))
+                                        .monospacedDigit()
+                                        .foregroundStyle(AliveColor.inkTertiary)
+                                }
+                            }
+                        } else {
+                            HStack(alignment: .firstTextBaseline) {
+                                Text("今日预算")
+                                    .font(AliveFont.sans(14, weight: .medium, relativeTo: .subheadline))
+                                    .foregroundStyle(AliveColor.inkSecondary)
+                                Spacer()
+                                HStack(spacing: AliveSpace.x2) {
+                                    Text(MoneyFormatter.currency(cents: snapshot.todayBudgetCents))
+                                        .font(AliveFont.sans(15, weight: .semibold, relativeTo: .subheadline))
+                                        .monospacedDigit()
+                                        .foregroundStyle(AliveColor.ink)
+                                    Text("\(Int((progressRatio(snapshot) * 100).rounded()))%")
+                                        .font(AliveFont.sans(12, weight: .medium, relativeTo: .footnote))
+                                        .monospacedDigit()
+                                        .foregroundStyle(AliveColor.inkTertiary)
+                                }
+                            }
+                        }
+                        BudgetProgress(progress: progressRatio(snapshot), isOverspent: state.isOverspent)
+                            .accessibilityLabel("今日预算使用进度")
+                            .accessibilityValue("\(Int((progressRatio(snapshot) * 100).rounded()))%")
+                        infoRow("今日已花", MoneyFormatter.currency(cents: snapshot.todaySpentCents))
+                        infoRow("当前余额", MoneyFormatter.currency(cents: snapshot.currentBalanceCents))
+                    }
                 }
-            } else {
-                HStack(alignment: .center, spacing: AliveSpace.x4) {
-                    amountBlock
-                        .layoutPriority(1)
-                    Spacer(minLength: AliveSpace.x2)
-                    ring
+
+                if let footnote = footnoteText(state) {
+                    Text(footnote)
+                        .font(AliveFont.sans(13, relativeTo: .footnote))
+                        .foregroundStyle(AliveColor.inkTertiary)
+                        .fixedSize(horizontal: false, vertical: true)
                 }
             }
+        }
+        .animation(reduceMotion ? nil : AliveMotion.value, value: snapshot.generatedAt)
+    }
 
-            BrassRule()
-
+    @ViewBuilder
+    private func infoRow(_ title: String, _ value: String) -> some View {
+        if dynamicTypeSize.isAccessibilitySize {
             VStack(alignment: .leading, spacing: AliveSpace.x1) {
-                Text(detailLine)
+                Text(title)
                     .font(AliveFont.sans(14, weight: .medium, relativeTo: .subheadline))
                     .foregroundStyle(AliveColor.inkSecondary)
+                Text(value)
+                    .font(AliveFont.sans(15, weight: .semibold, relativeTo: .subheadline))
                     .monospacedDigit()
-
-                if isOverspent {
-                    Text("明天会按当前余额重新分配。")
-                        .font(AliveFont.sans(13, relativeTo: .footnote))
-                        .foregroundStyle(AliveColor.inkTertiary)
-                } else if isPending {
-                    Text("\(snapshot.daysRemaining) 天平均分配")
-                        .font(AliveFont.sans(13, relativeTo: .footnote))
-                        .foregroundStyle(AliveColor.inkTertiary)
-                }
+                    .foregroundStyle(AliveColor.ink)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.7)
             }
-
-            PrimaryAction(
-                title: isPending ? "调整设置" : "记一笔",
-                systemImage: isPending ? "slider.horizontal.3" : "plus"
-            ) {
-                onPrimary()
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .frame(minHeight: 28)
+        } else {
+            HStack(alignment: .firstTextBaseline) {
+                Text(title)
+                    .font(AliveFont.sans(14, weight: .medium, relativeTo: .subheadline))
+                    .foregroundStyle(AliveColor.inkSecondary)
+                Spacer(minLength: AliveSpace.x3)
+                Text(value)
+                    .font(AliveFont.sans(15, weight: .semibold, relativeTo: .subheadline))
+                    .monospacedDigit()
+                    .foregroundStyle(AliveColor.ink)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.85)
             }
-
-            if !isPending {
-                activityAction
-            }
+            .frame(minHeight: 28)
         }
-        .padding(AliveSpace.x4)
-        .background(AliveColor.card)
-        .overlay {
-            Rectangle()
-                .stroke(AliveColor.line, lineWidth: 1)
-        }
-        .overlay(alignment: .topTrailing) {
-            Rectangle()
-                .fill(isOverspent ? AliveColor.overspend : AliveColor.brass)
-                .frame(width: 34, height: 1)
-                .padding(.trailing, AliveSpace.x4)
-        }
-        .accessibilityElement(children: .contain)
     }
 
-    private var amountBlock: some View {
-        AmountText(
-            cents: displayAmount,
-            size: 58,
-            color: isOverspent ? AliveColor.overspend : AliveColor.ink
-        )
-        .accessibilityLabel(accessibilityAmount)
-    }
-
-    private var ring: some View {
-        OrreryRing(
-            progress: progressRatio,
-            phase: snapshot.phase,
-            diameter: 88
-        )
-        .accessibilityElement(children: .ignore)
-        .accessibilityLabel("今日预算使用进度")
-        .accessibilityValue("\(Int((progressRatio * 100).rounded()))%")
-    }
-
-    private var activityAction: some View {
-        HStack {
-            Spacer()
-            Button(action: onActivity) {
-                HStack(spacing: AliveSpace.x1) {
-                    if activityStatus == .active {
-                        Image(systemName: "checkmark")
-                            .font(.system(size: 11, weight: .bold))
+    private var recentExpensesCard: some View {
+        SurfaceCard(padding: 0) {
+            VStack(alignment: .leading, spacing: 0) {
+                Button { model.openHistory() } label: {
+                    HStack {
+                        Text("最近记录")
+                            .font(AliveFont.sans(16, weight: .semibold, relativeTo: .headline))
+                            .foregroundStyle(AliveColor.ink)
+                        Spacer()
+                        Image(systemName: "chevron.right")
+                            .font(.system(size: 13, weight: .semibold))
+                            .foregroundStyle(AliveColor.inkTertiary)
                     }
-                    Text(activityButtonTitle)
-                        .font(AliveFont.sans(13, weight: .medium, relativeTo: .footnote))
+                    .frame(minHeight: 50)
+                    .padding(.horizontal, AliveSpace.x5)
+                    .contentShape(Rectangle())
                 }
-                .foregroundStyle(
-                    activityStatus == .unavailable ? AliveColor.inkTertiary : AliveColor.inkSecondary
-                )
-                .frame(minHeight: 44)
-                .contentShape(Rectangle())
+                .buttonStyle(.plain)
+                .accessibilityHint("打开本周期全部记录")
+
+                ForEach(Array(model.currentExpenses.sorted { $0.occurredAt > $1.occurredAt }.prefix(3))) { expense in
+                    Button { model.openHistory() } label: {
+                        if dynamicTypeSize.isAccessibilitySize {
+                            VStack(alignment: .leading, spacing: AliveSpace.x1) {
+                                HStack(alignment: .firstTextBaseline) {
+                                    Text(recentTimeLabel(expense.occurredAt))
+                                        .font(AliveFont.sans(12, weight: .medium, relativeTo: .footnote))
+                                        .monospacedDigit()
+                                        .foregroundStyle(AliveColor.inkTertiary)
+                                    Spacer(minLength: AliveSpace.x2)
+                                    recentAmountLabel(expense)
+                                }
+                                Text(expense.note ?? "支出")
+                                    .font(AliveFont.sans(15, weight: .medium, relativeTo: .body))
+                                    .foregroundStyle(AliveColor.ink)
+                                    .lineLimit(2)
+                                    .fixedSize(horizontal: false, vertical: true)
+                            }
+                            .frame(minHeight: 44)
+                            .padding(.horizontal, AliveSpace.x5)
+                            .contentShape(Rectangle())
+                        } else {
+                            HStack(spacing: AliveSpace.x3) {
+                                Text(recentTimeLabel(expense.occurredAt))
+                                    .font(AliveFont.sans(12, weight: .medium, relativeTo: .footnote))
+                                    .monospacedDigit()
+                                    .foregroundStyle(AliveColor.inkTertiary)
+                                    .lineLimit(1)
+                                    .minimumScaleFactor(0.75)
+                                    .frame(width: 64, alignment: .leading)
+                                Text(expense.note ?? "支出")
+                                    .font(AliveFont.sans(15, weight: .medium, relativeTo: .body))
+                                    .foregroundStyle(AliveColor.ink)
+                                    .lineLimit(1)
+                                Spacer(minLength: AliveSpace.x2)
+                                recentAmountLabel(expense)
+                            }
+                            .frame(minHeight: 44)
+                            .padding(.horizontal, AliveSpace.x5)
+                            .contentShape(Rectangle())
+                        }
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityElement(children: .combine)
+                    .accessibilityHint("打开本周期全部记录")
+                }
             }
-            .buttonStyle(.plain)
-            .disabled(activityStatus == .unavailable)
-            .accessibilityHint("单次最长约 8 小时，跨午夜或到发薪日后需要重新开启。")
-            Spacer()
         }
     }
 
-    private var activityButtonTitle: String {
-        switch activityStatus {
-        case .active:
-            "今日灵动岛已开启 · 结束"
-        case .stale:
-            "今日灵动岛已过期 · 重新开启"
-        case .inactive:
-            "开启今日灵动岛"
-        case .unavailable:
-            "系统未允许实时活动"
+    private var pendingNote: some View {
+        HStack(alignment: .top, spacing: AliveSpace.x3) {
+            Image(systemName: "info.circle.fill")
+                .foregroundStyle(AliveColor.accent)
+                .accessibilityHidden(true)
+            Text("起始日前不能记支出，也不能开启实时活动。日期与初始余额仍可在设置中调整。")
+                .font(AliveFont.sans(13, relativeTo: .footnote))
+                .foregroundStyle(AliveColor.inkTertiary)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(AliveSpace.x4)
+        .background(AliveColor.accentTint, in: RoundedRectangle(cornerRadius: AliveRadius.control, style: .continuous))
+    }
+
+    private func bottomActionBar(_ snapshot: BudgetSnapshot) -> some View {
+        GlassActionBar(axis: dynamicTypeSize.isAccessibilitySize ? .vertical : .horizontal) {
+            if snapshot.phase == .pending {
+                GlassActionButton(
+                    title: "调整设置",
+                    systemImage: "slider.horizontal.3",
+                    isProminent: true,
+                    accessibilityHint: "修改起始日、发薪日和初始余额。"
+                ) { model.openSettings() }
+            } else {
+                GlassActionButton(
+                    title: "调余额",
+                    systemImage: "plus.forwardslash.minus",
+                    accessibilityHint: "修改当前剩余余额并重算今天还可花。"
+                ) { model.openBalance() }
+                GlassActionButton(
+                    title: "记一笔",
+                    systemImage: "plus",
+                    isProminent: true,
+                    accessibilityHint: "记录一笔支出。"
+                ) { model.openQuickExpense() }
+            }
         }
     }
 
-    private var sectionLabel: String {
-        if isPending {
-            return "预计每日额度"
+    private func recentTimeLabel(_ date: Date) -> String {
+        let calendar = BudgetCalendar()
+        let today = Date()
+        if calendar.isSameDay(date, today) {
+            return AliveDateText.time(date)
         }
-        return isOverspent ? "今天已超出" : "今天还可花"
+        if let yesterday = calendar.calendar.date(byAdding: .day, value: -1, to: today),
+           calendar.isSameDay(date, yesterday) {
+            return "昨天 \(AliveDateText.time(date))"
+        }
+        return "\(AliveDateText.monthDay(date)) \(AliveDateText.time(date))"
     }
 
-    private var detailLine: String {
-        if isPending {
-            return "起始余额 \(MoneyFormatter.currency(cents: snapshot.currentBalanceCents))"
-        }
-        return "余额 \(MoneyFormatter.currency(cents: snapshot.currentBalanceCents)) · \(snapshot.daysRemaining) 天"
+    private func recentAmountLabel(_ expense: Expense) -> some View {
+        Text("-\(MoneyFormatter.currency(cents: Decimal(expense.amountCents)))")
+            .font(AliveFont.sans(15, weight: .semibold, relativeTo: .body))
+            .monospacedDigit()
+            .foregroundStyle(AliveColor.ink)
+            .lineLimit(1)
+            .minimumScaleFactor(0.7)
     }
 
-    private var progressRatio: Double {
-        guard snapshot.todayBudgetCents > 0 else { return 0 }
+    private func progressRatio(_ snapshot: BudgetSnapshot) -> Double {
+        guard snapshot.todayBudgetCents > 0 else {
+            return snapshot.displayState.isOverspent ? 1 : 0
+        }
         let spent = NSDecimalNumber(decimal: Decimal(snapshot.todaySpentCents)).doubleValue
         let budget = NSDecimalNumber(decimal: snapshot.todayBudgetCents).doubleValue
-        guard budget > 0 else { return 0 }
         return min(max(spent / budget, 0), 1)
     }
 
-    private var accessibilityAmount: String {
-        if isOverspent {
-            return "今天已超出 \(MoneyFormatter.spoken(cents: displayAmount))"
+    private func heroAccessibilityLabel(_ state: BudgetDisplayState) -> String {
+        switch state {
+        case .pending(let cents):
+            "预计每日额度，\(MoneyFormatter.spoken(cents: cents))"
+        case .available(let cents):
+            "今天还可花，\(MoneyFormatter.spoken(cents: cents))"
+        case .overspent(let overage):
+            "今天已超出，\(MoneyFormatter.spoken(cents: overage))"
+        case .negativeBalance(let balance, _):
+            "余额已为负，差额 \(MoneyFormatter.spoken(cents: balance))"
+        case .zeroBalance:
+            "今日额度不可用，余额为零"
         }
-        if isPending {
-            return "预计每日额度 \(MoneyFormatter.spoken(cents: displayAmount))，起始 \(AliveDateText.monthDay(snapshot.startDate))"
+    }
+
+    private func footnoteText(_ state: BudgetDisplayState) -> String? {
+        switch state {
+        case .pending, .available:
+            return nil
+        case .overspent:
+            return "明天会按当前余额重新分配。"
+        case .negativeBalance(_, let overage):
+            if let overage { return "今天已超出 \(MoneyFormatter.currency(cents: overage))，明天会按当前余额重新分配。" }
+            return "今日额度按 0 计算，调整余额后会重新分配。"
+        case .zeroBalance:
+            return "当前余额为 ¥0.00，今日额度按 0 计算。"
         }
-        return "今天还可花 \(MoneyFormatter.spoken(cents: displayAmount))，余额 \(MoneyFormatter.spoken(cents: Decimal(snapshot.currentBalanceCents)))，距发薪 \(snapshot.daysRemaining) 天"
+    }
+
+    private func activityActionLabel(for snapshot: BudgetSnapshot?) -> String {
+        guard let snapshot else { return "今日实时活动不可用" }
+        if snapshot.phase == .pending || model.activity.status == .unavailable {
+            return "今日实时活动不可用"
+        }
+        switch model.activity.status {
+        case .active: return "结束今日实时活动"
+        case .stale: return "重新开启今日实时活动"
+        case .inactive: return "开启今日实时活动"
+        case .unavailable: return "今日实时活动不可用"
+        }
+    }
+
+    private func isActivityControlEnabled(for snapshot: BudgetSnapshot?) -> Bool {
+        guard let snapshot else { return false }
+        return snapshot.phase != .pending && model.activity.status != .unavailable
     }
 }
 
@@ -340,34 +418,31 @@ private struct BalanceReviewBanner: View {
     var body: some View {
         Button(action: action) {
             HStack(alignment: .top, spacing: AliveSpace.x3) {
-                Image(systemName: "sunrise")
-                    .font(.system(size: 16, weight: .medium))
-                    .foregroundStyle(AliveColor.brass)
-                    .padding(.top, 1)
+                Image(systemName: "arrow.triangle.2.circlepath")
+                    .font(.system(size: 18, weight: .semibold))
+                    .foregroundStyle(AliveColor.accent)
+                    .accessibilityHidden(true)
                 VStack(alignment: .leading, spacing: AliveSpace.x1) {
                     Text("新的周期已经开始")
-                        .font(AliveFont.sans(14, weight: .semibold, relativeTo: .subheadline))
+                        .font(AliveFont.sans(15, weight: .semibold, relativeTo: .subheadline))
                         .foregroundStyle(AliveColor.ink)
                     Text("已结转旧余额。收到工资后，请更新当前余额。")
-                        .font(AliveFont.sans(12, relativeTo: .caption))
-                        .lineSpacing(4)
+                        .font(AliveFont.sans(13, relativeTo: .footnote))
                         .foregroundStyle(AliveColor.inkSecondary)
+                        .fixedSize(horizontal: false, vertical: true)
                 }
-                Spacer()
+                Spacer(minLength: AliveSpace.x2)
                 Image(systemName: "chevron.right")
                     .font(.system(size: 12, weight: .semibold))
-                    .foregroundStyle(AliveColor.brass)
-                    .padding(.top, 3)
+                    .foregroundStyle(AliveColor.inkTertiary)
+                    .accessibilityHidden(true)
             }
-            .padding(AliveSpace.x3)
-            .background(AliveColor.surface)
-            .overlay {
-                Rectangle()
-                    .stroke(AliveColor.line, lineWidth: 1)
-            }
+            .padding(AliveSpace.x4)
+            .background(AliveColor.accentTint, in: RoundedRectangle(cornerRadius: AliveRadius.card, style: .continuous))
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
+        .accessibilityLabel("新的周期已经开始")
         .accessibilityHint("打开调整余额")
     }
 }

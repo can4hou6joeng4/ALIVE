@@ -1,7 +1,13 @@
 import Foundation
+import os
 import SwiftData
 
 public actor SwiftDataBudgetRepository: BudgetRepository {
+    private static let logger = Logger(
+        subsystem: "cn.bobochang.alive",
+        category: "BudgetSnapshot"
+    )
+
     private let modelContainer: ModelContainer
     private let snapshotStore: BudgetSnapshotStore
     private let resolver: BudgetResolver
@@ -68,8 +74,7 @@ public actor SwiftDataBudgetRepository: BudgetRepository {
         let resolution = try resolver.initialResolution(setup: setup, now: now)
         guard let snapshot = resolution.snapshot else { throw BudgetError.noCycle }
         try persist(resolution.state)
-        try writeSnapshot(snapshot)
-        return snapshot
+        return writeSnapshotBestEffort(snapshot)
     }
 
     public func snapshot(at date: Date) async throws -> BudgetSnapshot {
@@ -78,8 +83,7 @@ public actor SwiftDataBudgetRepository: BudgetRepository {
             snapshotStore.clear()
             throw BudgetError.noCycle
         }
-        try writeSnapshot(snapshot)
-        return snapshot
+        return writeSnapshotBestEffort(snapshot)
     }
 
     public func addExpense(amountCents: Int, note: String?, at date: Date) async throws -> BudgetSnapshot {
@@ -92,8 +96,7 @@ public actor SwiftDataBudgetRepository: BudgetRepository {
         )
         try persist(resolution.state)
         guard let snapshot = resolution.snapshot else { throw BudgetError.noCycle }
-        try writeSnapshot(snapshot)
-        return snapshot
+        return writeSnapshotBestEffort(snapshot)
     }
 
     public func updateExpense(
@@ -112,8 +115,7 @@ public actor SwiftDataBudgetRepository: BudgetRepository {
         )
         try persist(resolution.state)
         guard let snapshot = resolution.snapshot else { throw BudgetError.noCycle }
-        try writeSnapshot(snapshot)
-        return snapshot
+        return writeSnapshotBestEffort(snapshot)
     }
 
     public func deleteExpense(id: UUID, now: Date) async throws -> BudgetSnapshot {
@@ -121,8 +123,7 @@ public actor SwiftDataBudgetRepository: BudgetRepository {
         let resolution = try resolver.deleteExpense(in: state, id: id, now: now)
         try persist(resolution.state)
         guard let snapshot = resolution.snapshot else { throw BudgetError.noCycle }
-        try writeSnapshot(snapshot)
-        return snapshot
+        return writeSnapshotBestEffort(snapshot)
     }
 
     public func overrideCurrentBalance(cents: Int, at date: Date) async throws -> BudgetSnapshot {
@@ -130,8 +131,7 @@ public actor SwiftDataBudgetRepository: BudgetRepository {
         let resolution = try resolver.overrideCurrentBalance(in: state, cents: cents, at: date)
         try persist(resolution.state)
         guard let snapshot = resolution.snapshot else { throw BudgetError.noCycle }
-        try writeSnapshot(snapshot)
-        return snapshot
+        return writeSnapshotBestEffort(snapshot)
     }
 
     public func updatePendingCycle(_ setup: CycleSetup, now: Date) async throws -> BudgetSnapshot {
@@ -139,8 +139,7 @@ public actor SwiftDataBudgetRepository: BudgetRepository {
         let resolution = try resolver.updatePendingCycle(in: state, setup: setup, now: now)
         try persist(resolution.state)
         guard let snapshot = resolution.snapshot else { throw BudgetError.noCycle }
-        try writeSnapshot(snapshot)
-        return snapshot
+        return writeSnapshotBestEffort(snapshot)
     }
 
     public func currentExpenses(at date: Date) async throws -> [Expense] {
@@ -258,7 +257,10 @@ public actor SwiftDataBudgetRepository: BudgetRepository {
         protectStoreFiles()
     }
 
-    private func writeSnapshot(_ snapshot: BudgetSnapshot) throws {
+    /// SwiftData is the source of truth. A failed shared-snapshot write must not
+    /// roll back or fail an already-persisted user action; the next successful
+    /// read or write regenerates the snapshot.
+    private func writeSnapshotBestEffort(_ snapshot: BudgetSnapshot) -> BudgetSnapshot {
         let document = BudgetSnapshotDocument(
             snapshot: snapshot,
             nextRefresh: resolver.calendar.nextMidnight(after: snapshot.generatedAt)
@@ -266,8 +268,12 @@ public actor SwiftDataBudgetRepository: BudgetRepository {
         do {
             try snapshotStore.write(document)
         } catch {
-            throw BudgetError.snapshotUnavailable
+            let code = (error as NSError).code
+            Self.logger.error(
+                "Shared snapshot write failed with code \(code, privacy: .public); SwiftData state remains authoritative."
+            )
         }
+        return snapshot
     }
 
     private func protectStoreFiles() {

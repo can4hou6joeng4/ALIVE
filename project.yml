@@ -61,17 +61,12 @@ targets:
         CFBundleShortVersionString: $(MARKETING_VERSION)
         CFBundleVersion: $(CURRENT_PROJECT_VERSION)
         LSApplicationCategoryType: public.app-category.finance
-        UILaunchScreen: {}
+        UILaunchScreen:
+          UIColorName: LaunchBackground
         UISupportedInterfaceOrientations:
           - UIInterfaceOrientationPortrait
         ITSAppUsesNonExemptEncryption: false
         NSSupportsLiveActivities: true
-        UIAppFonts:
-          - Gloock-Regular.ttf
-          - Commissioner-Regular.ttf
-          - Commissioner-Medium.ttf
-          - Commissioner-SemiBold.ttf
-          - Commissioner-Bold.ttf
         CFBundleURLTypes:
           - CFBundleURLName: cn.bobochang.alive
             CFBundleURLSchemes:
@@ -91,10 +86,8 @@ targets:
     sources:
       - path: AliveWidgets
       - path: Shared/Intents
-    resources:
-      - path: Alive/Resources/Fonts
-      - path: Alive/Resources/Licenses
       - path: Alive/Resources/PrivacyInfo.xcprivacy
+        buildPhase: resources
     dependencies:
       - target: AliveCore
         embed: false
@@ -111,12 +104,6 @@ targets:
         CFBundleVersion: $(CURRENT_PROJECT_VERSION)
         NSExtension:
           NSExtensionPointIdentifier: com.apple.widgetkit-extension
-        UIAppFonts:
-          - Gloock-Regular.ttf
-          - Commissioner-Regular.ttf
-          - Commissioner-Medium.ttf
-          - Commissioner-SemiBold.ttf
-          - Commissioner-Bold.ttf
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: cn.bobochang.alive.widgets

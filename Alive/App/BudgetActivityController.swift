@@ -69,6 +69,12 @@ final class BudgetActivityController {
     func attach(to snapshot: BudgetSnapshot?) async {
         refreshStatus()
         guard let snapshot, let activity else { return }
+        if snapshot.phase == .pending {
+            await endActivity(activity)
+            self.activity = nil
+            status = .inactive
+            return
+        }
         if activity.attributes.cycleID != snapshot.cycleID {
             await endActivity(activity)
             self.activity = nil
@@ -94,12 +100,18 @@ final class BudgetActivityController {
         refreshStatus()
 
         if let activity, activity.activityState == .active {
-            let staleDate = activity.content.staleDate
-                ?? LiveActivityWindow.calculate(snapshot: snapshot, openedAt: now).staleDate
-            await activity.update(content(for: snapshot, staleDate: staleDate))
-            self.activity = activity
-            status = .active
-            return
+            if activity.attributes.cycleID == snapshot.cycleID {
+                let freshWindow = LiveActivityWindow.calculate(snapshot: snapshot, openedAt: now)
+                let existingStaleDate = activity.content.staleDate ?? freshWindow.staleDate
+                let staleDate = max(existingStaleDate, freshWindow.staleDate)
+                await activity.update(content(for: snapshot, staleDate: staleDate))
+                self.activity = activity
+                status = .active
+                return
+            }
+            await endActivity(activity)
+            self.activity = nil
+            status = .inactive
         }
 
         for existing in Activity<BudgetActivityAttributes>.activities {
@@ -112,13 +124,19 @@ final class BudgetActivityController {
             startDate: snapshot.startDate,
             payday: snapshot.payday
         )
-        let newActivity = try Activity.request(
-            attributes: attributes,
-            content: content(for: snapshot, staleDate: window.staleDate),
-            pushType: nil
-        )
-        activity = newActivity
-        status = .active
+        do {
+            let newActivity = try Activity.request(
+                attributes: attributes,
+                content: content(for: snapshot, staleDate: window.staleDate),
+                pushType: nil
+            )
+            activity = newActivity
+            status = .active
+        } catch {
+            activity = nil
+            refreshStatus()
+            throw error
+        }
     }
 
     func updateIfActive(with snapshot: BudgetSnapshot) async {

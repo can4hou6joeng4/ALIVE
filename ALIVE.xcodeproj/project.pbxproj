@@ -8,6 +8,8 @@
 
 /* Begin PBXBuildFile section */
 		00B044F478FE531A196E7475 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = E921ADB5DB83AA64432D7C2C /* PrivacyInfo.xcprivacy */; };
+		069A6F58AFEECB822E7CBAF4 /* WelcomeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CDA6371BF1CFAC0947CE3609 /* WelcomeView.swift */; };
+		0744CDD3C701EDD8E62D1396 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = E921ADB5DB83AA64432D7C2C /* PrivacyInfo.xcprivacy */; };
 		13E331E5EC843C5BE6014B66 /* AliveCore.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 0A258B8A5A1FEF05896C1ECD /* AliveCore.framework */; };
 		148FF545E62D7B21405D33AE /* AliveComponents.swift in Sources */ = {isa = PBXBuildFile; fileRef = BE86C6AD2E9A835B3084BB7B /* AliveComponents.swift */; };
 		14D1FC238FCC8BFC59802C80 /* BudgetProjection.swift in Sources */ = {isa = PBXBuildFile; fileRef = C9A41DC49DD21F8D0FA30EF7 /* BudgetProjection.swift */; };
@@ -53,6 +55,7 @@
 		CBB18980FBE2F8DE3A4EB5B8 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 52F37BCDE720C380B7805280 /* SettingsView.swift */; };
 		D072404222E3F6B2F7255382 /* WidgetStyle.swift in Sources */ = {isa = PBXBuildFile; fileRef = D8FB03DC44513C4E54E6CED8 /* WidgetStyle.swift */; };
 		D24A677EAA3FCD74A4BBF31C /* Commissioner-Medium.ttf in Resources */ = {isa = PBXBuildFile; fileRef = FA9029C0561AA26C321AF43A /* Commissioner-Medium.ttf */; };
+		D5BF39F68A8EF2058E02B130 /* WelcomeController.swift in Sources */ = {isa = PBXBuildFile; fileRef = BECD9FFE301E842B29EE5D35 /* WelcomeController.swift */; };
 		E0759C25786D7FCE0C832D7A /* AliveFormatting.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4AC6A0B0A1F96B7FF5B170ED /* AliveFormatting.swift */; };
 		E35EB89649B3AB81FA72DC9B /* AliveBudgetWidget.swift in Sources */ = {isa = PBXBuildFile; fileRef = FD60CB7BAA6C73B117F8C01D /* AliveBudgetWidget.swift */; };
 		F9D859A5E20F135292A6CFAC /* QuickExpenseSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 99547E8BF789AA0CE890A2CF /* QuickExpenseSheet.swift */; };
@@ -140,9 +143,11 @@
 		BA959ED42AE075AED6F7EB8A /* SetupView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SetupView.swift; sourceTree = "<group>"; };
 		BBCCE4D76E56E50C42DCDAFB /* BudgetResolver.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BudgetResolver.swift; sourceTree = "<group>"; };
 		BE86C6AD2E9A835B3084BB7B /* AliveComponents.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AliveComponents.swift; sourceTree = "<group>"; };
+		BECD9FFE301E842B29EE5D35 /* WelcomeController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WelcomeController.swift; sourceTree = "<group>"; };
 		C0AD790EC09B3A52218C7063 /* HistoryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HistoryView.swift; sourceTree = "<group>"; };
 		C54BEBA8623AA7989235603E /* AliveWidgets.appex */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = "wrapper.app-extension"; path = AliveWidgets.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 		C9A41DC49DD21F8D0FA30EF7 /* BudgetProjection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BudgetProjection.swift; sourceTree = "<group>"; };
+		CDA6371BF1CFAC0947CE3609 /* WelcomeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WelcomeView.swift; sourceTree = "<group>"; };
 		CDA6A77E7A43E66D81E7B09C /* RootView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RootView.swift; sourceTree = "<group>"; };
 		CE373525630A8327622EB601 /* AliveWidgetBundle.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AliveWidgetBundle.swift; sourceTree = "<group>"; };
 		CE547C4DB38C8338F0E9284A /* AliveSchema.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AliveSchema.swift; sourceTree = "<group>"; };
@@ -335,6 +340,8 @@
 				ECEA17B0ECBEA9F29CD5E49D /* AppModel.swift */,
 				EECFC6C0392C7EB78F39AB07 /* BudgetActivityController.swift */,
 				CDA6A77E7A43E66D81E7B09C /* RootView.swift */,
+				BECD9FFE301E842B29EE5D35 /* WelcomeController.swift */,
+				CDA6371BF1CFAC0947CE3609 /* WelcomeView.swift */,
 			);
 			path = App;
 			sourceTree = "<group>";
@@ -464,6 +471,7 @@
 			buildConfigurationList = 4C8A7E7E748273433343C5CF /* Build configuration list for PBXNativeTarget "AliveWidgets" */;
 			buildPhases = (
 				88C7855F10E6C31F663D8609 /* Sources */,
+				D843F4F4E710E09C289F2CFC /* Resources */,
 				79621BF96F363DD36D31DBC4 /* Frameworks */,
 			);
 			buildRules = (
@@ -545,6 +553,14 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		D843F4F4E710E09C289F2CFC /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				0744CDD3C701EDD8E62D1396 /* PrivacyInfo.xcprivacy in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
@@ -566,6 +582,8 @@
 				CBB18980FBE2F8DE3A4EB5B8 /* SettingsView.swift in Sources */,
 				549A5DFA74F5C2660E25009B /* SetupView.swift in Sources */,
 				19635C907FF6C161C3A71883 /* TodayView.swift in Sources */,
+				D5BF39F68A8EF2058E02B130 /* WelcomeController.swift in Sources */,
+				069A6F58AFEECB822E7CBAF4 /* WelcomeView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

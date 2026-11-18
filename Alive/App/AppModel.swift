@@ -4,25 +4,6 @@ import Observation
 import SwiftUI
 import WidgetKit
 
-enum ThemePreference: String, CaseIterable, Identifiable {
-    case light
-    case dark
-    case system
-
-    var id: String { rawValue }
-
-    var title: String {
-        switch self {
-        case .light:
-            "浅色"
-        case .dark:
-            "深色"
-        case .system:
-            "跟随系统"
-        }
-    }
-}
-
 @MainActor
 @Observable
 final class AppModel {
@@ -52,10 +33,8 @@ final class AppModel {
 
     enum Destination: Hashable {
         case history
-        case settings
     }
 
-    private let defaults: UserDefaults
     private let calendar = BudgetCalendar()
     private var repository: (any BudgetRepository)?
     private var didBootstrap = false
@@ -68,28 +47,8 @@ final class AppModel {
     var sheet: Sheet?
     var path: [Destination] = []
     var alertMessage: String?
-    var theme: ThemePreference {
-        didSet {
-            defaults.set(theme.rawValue, forKey: "appearancePreference")
-        }
-    }
+    var isSettingsPresented = false
     let activity = BudgetActivityController()
-
-    init(defaults: UserDefaults = .standard) {
-        self.defaults = defaults
-        theme = ThemePreference(rawValue: defaults.string(forKey: "appearancePreference") ?? "") ?? .light
-    }
-
-    var preferredColorScheme: ColorScheme? {
-        switch theme {
-        case .light:
-            .light
-        case .dark:
-            .dark
-        case .system:
-            nil
-        }
-    }
 
     func bootstrap() async {
         guard !didBootstrap else { return }
@@ -101,8 +60,7 @@ final class AppModel {
             self.repository = repository
 
             guard try await repository.hasCycle() else {
-                loadState = .setup
-                activity.refreshStatus()
+                await enterSetupWithoutCycle()
                 return
             }
 
@@ -150,8 +108,7 @@ final class AppModel {
             await activity.attach(to: snapshot)
             applyPendingIntentRouteIfNeeded()
         } catch BudgetError.noCycle {
-            snapshot = nil
-            loadState = .setup
+            await enterSetupWithoutCycle()
         } catch {
             alertMessage = error.localizedDescription
         }
@@ -213,16 +170,18 @@ final class AppModel {
             return
         }
         path = []
+        isSettingsPresented = false
         sheet = .quickExpense
     }
 
     func openBalance() {
         guard let snapshot else { return }
         guard snapshot.phase != .pending else {
-            path = [.settings]
+            openSettings()
             return
         }
         path = []
+        isSettingsPresented = false
         sheet = .balance
     }
 
@@ -232,12 +191,18 @@ final class AppModel {
 
     func openHistory() {
         sheet = nil
+        isSettingsPresented = false
         path.append(.history)
     }
 
     func openSettings() {
         sheet = nil
-        path.append(.settings)
+        path = []
+        isSettingsPresented = true
+    }
+
+    func closeSettings() {
+        isSettingsPresented = false
     }
 
     func handle(url: URL) {
@@ -254,6 +219,7 @@ final class AppModel {
         switch route {
         case .today:
             sheet = nil
+            isSettingsPresented = false
             path = []
         case .quickEntry:
             openQuickExpense()
@@ -307,6 +273,24 @@ final class AppModel {
         if let derivedDataError {
             alertMessage = derivedDataError
         }
+    }
+
+    private func enterSetupWithoutCycle() async {
+        snapshot = nil
+        currentExpenses = []
+        archivedCycles = []
+        sheet = nil
+        path = []
+
+        if let snapshotStore = try? BudgetSnapshotStore.appGroup() {
+            snapshotStore.clear()
+        }
+
+        await activity.end()
+        WidgetCenter.shared.reloadAllTimelines()
+
+        loadState = .setup
+        applyPendingIntentRouteIfNeeded()
     }
 
     private func requireRepository() throws -> any BudgetRepository {

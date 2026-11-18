@@ -1,3 +1,4 @@
+import AliveCore
 import Foundation
 
 enum AliveDateText {
@@ -21,7 +22,7 @@ enum AliveDateText {
         let formatter = DateFormatter()
         formatter.locale = Locale(identifier: "zh_CN")
         formatter.calendar = Calendar(identifier: .gregorian)
-        formatter.timeZone = .autoupdatingCurrent
+        formatter.timeZone = BudgetCalendar.fixedTimeZone
         formatter.dateFormat = format
         return formatter
     }

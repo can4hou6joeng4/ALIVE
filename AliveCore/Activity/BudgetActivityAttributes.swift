@@ -22,6 +22,15 @@ public struct BudgetActivityAttributes: ActivityAttributes, Sendable {
             self.phase = phase
             self.updatedAt = updatedAt
         }
+
+        public var displayState: BudgetDisplayState {
+            BudgetDisplayState(
+                phase: phase,
+                todayBudgetCents: max(0, todayAvailableCents),
+                todayAvailableCents: todayAvailableCents,
+                currentBalanceCents: currentBalanceCents
+            )
+        }
     }
 
     public let cycleID: UUID

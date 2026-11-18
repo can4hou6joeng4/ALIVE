@@ -109,6 +109,104 @@ struct SwiftDataBudgetRepositoryTests {
         #expect(MoneyFormatter.currency(cents: nextDay.todayBudgetCents) == "¥55.56")
     }
 
+    @Test("快照不可写时创建周期仍然成功并持久化")
+    func createCycleSurvivesSnapshotWriteFailure() async throws {
+        let fixture = try makeFixture()
+        defer { fixture.remove() }
+
+        let snapshotStore = try fixture.makeUnwritableSnapshotStore()
+        let repository = try fixture.makeRepository(snapshotStore: snapshotStore)
+        let now = date(2026, 11, 17, hour: 9)
+
+        let created = try await repository.createCycle(
+            CycleSetup(
+                initialBalanceCents: 100_000,
+                startDate: now,
+                nextPayday: date(2026, 11, 27)
+            ),
+            now: now
+        )
+
+        #expect(created.currentBalanceCents == 100_000)
+        #expect(created.todayBudgetCents == 10_000)
+        #expect(try await repository.hasCycle())
+
+        let reloaded = try fixture.makeRepository()
+        let persisted = try await reloaded.snapshot(at: now)
+        #expect(persisted.cycleID == created.cycleID)
+        #expect(persisted.currentBalanceCents == 100_000)
+        #expect(persisted.todayBudgetCents == 10_000)
+    }
+
+    @Test("快照不可写时支出仍保存且重读只有一笔")
+    func addExpenseSurvivesSnapshotWriteFailure() async throws {
+        let fixture = try makeFixture()
+        defer { fixture.remove() }
+
+        let snapshotStore = try fixture.makeUnwritableSnapshotStore()
+        let repository = try fixture.makeRepository(snapshotStore: snapshotStore)
+        let now = date(2026, 11, 17, hour: 9)
+        let created = try await repository.createCycle(
+            CycleSetup(
+                initialBalanceCents: 100_000,
+                startDate: now,
+                nextPayday: date(2026, 11, 27)
+            ),
+            now: now
+        )
+
+        let added = try await repository.addExpense(
+            amountCents: 4_000,
+            note: "午饭",
+            at: now
+        )
+
+        #expect(added.cycleID == created.cycleID)
+        #expect(added.currentBalanceCents == 96_000)
+        #expect(added.todaySpentCents == 4_000)
+        #expect(added.todayAvailableCents == 6_000)
+        #expect(snapshotStore.read() == nil)
+
+        let reloaded = try fixture.makeRepository()
+        let expenses = try await reloaded.currentExpenses(at: now)
+        #expect(expenses.count == 1)
+        #expect(expenses[0].cycleID == created.cycleID)
+        #expect(expenses[0].amountCents == 4_000)
+
+        let persisted = try await reloaded.snapshot(at: now)
+        #expect(persisted.currentBalanceCents == 96_000)
+        #expect(persisted.todaySpentCents == 4_000)
+    }
+
+    @Test("快照路径恢复后重新生成共享快照")
+    func snapshotRegeneratesAfterStoreRecovers() async throws {
+        let fixture = try makeFixture()
+        defer { fixture.remove() }
+
+        let snapshotStore = try fixture.makeUnwritableSnapshotStore()
+        let repository = try fixture.makeRepository(snapshotStore: snapshotStore)
+        let now = date(2026, 11, 17, hour: 9)
+        _ = try await repository.createCycle(
+            CycleSetup(
+                initialBalanceCents: 100_000,
+                startDate: now,
+                nextPayday: date(2026, 11, 27)
+            ),
+            now: now
+        )
+        _ = try await repository.addExpense(amountCents: 4_000, note: nil, at: now)
+        #expect(snapshotStore.read() == nil)
+
+        try FileManager.default.removeItem(at: snapshotStore.directoryURL)
+
+        let recovered = try await repository.snapshot(at: now)
+        #expect(recovered.currentBalanceCents == 96_000)
+        #expect(recovered.todaySpentCents == 4_000)
+
+        let document = try #require(snapshotStore.read())
+        #expect(document.snapshot == recovered)
+    }
+
     private func makeFixture() throws -> RepositoryFixture {
         try RepositoryFixture(calendar: calendar)
     }
@@ -141,7 +239,7 @@ private struct RepositoryFixture {
         )
     }
 
-    func makeRepository() throws -> SwiftDataBudgetRepository {
+    func makeRepository(snapshotStore: BudgetSnapshotStore? = nil) throws -> SwiftDataBudgetRepository {
         let schema = Schema(versionedSchema: AliveSchemaV1.self)
         let configuration = ModelConfiguration(
             "AliveTests",
@@ -157,9 +255,20 @@ private struct RepositoryFixture {
         )
         return SwiftDataBudgetRepository(
             modelContainer: container,
-            snapshotStore: snapshotStore,
+            snapshotStore: snapshotStore ?? self.snapshotStore,
             calendar: calendar
         )
+    }
+
+    /// Places a regular file where the snapshot directory should be so every
+    /// snapshot write fails while SwiftData remains usable.
+    func makeUnwritableSnapshotStore() throws -> BudgetSnapshotStore {
+        let blockedDirectory = directory.appending(
+            path: "BlockedSnapshots",
+            directoryHint: .isDirectory
+        )
+        try Data("blocked".utf8).write(to: blockedDirectory)
+        return BudgetSnapshotStore(directoryURL: blockedDirectory)
     }
 
     func remove() {

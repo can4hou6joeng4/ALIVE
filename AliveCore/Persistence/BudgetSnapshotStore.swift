@@ -1,5 +1,9 @@
 import Foundation
 
+public enum SharedPreferenceKeys {
+    public static let appGroupID = "group.cn.bobochang.alive"
+}
+
 public struct BudgetSnapshotDocument: Codable, Hashable, Sendable {
     public static let currentSchemaVersion = 1
 

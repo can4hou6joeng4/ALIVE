@@ -31,8 +31,14 @@ struct SetupView: View {
     }
 
     private var validationMessage: String? {
-        if !amountText.isEmpty, (amountCents ?? 0) <= 0 {
-            return "请输入大于 0 的金额。"
+        let trimmedAmount = amountText.trimmingCharacters(in: .whitespacesAndNewlines)
+        if !trimmedAmount.isEmpty {
+            guard let cents = amountCents else {
+                return "请输入有效金额，最多 9 位整数和 2 位小数。"
+            }
+            if cents <= 0 {
+                return "请输入大于 0 的金额。"
+            }
         }
         if !datesAreValid {
             return "发薪日必须晚于起始日。"
@@ -45,56 +51,83 @@ struct SetupView: View {
     }
 
     var body: some View {
-        ZStack {
-            OrreryBackground()
+        ScrollView {
+            VStack(alignment: .leading, spacing: AliveSpace.x6) {
+                VStack(alignment: .leading, spacing: AliveSpace.x2) {
+                    Text("ALIVE")
+                        .font(AliveFont.sans(12, weight: .bold, relativeTo: .footnote))
+                        .tracking(2)
+                        .foregroundStyle(AliveColor.accent)
+                    Text("让余额活到发薪日")
+                        .font(.system(size: 36, weight: .bold))
+                        .foregroundStyle(AliveColor.ink)
+                        .fixedSize(horizontal: false, vertical: true)
+                        .accessibilityAddTraits(.isHeader)
+                    Text("把剩余金额分给此后的每一天。")
+                        .font(AliveFont.sans(16, relativeTo: .body))
+                        .foregroundStyle(AliveColor.inkSecondary)
+                }
 
-            ScrollView {
-                VStack(alignment: .leading, spacing: AliveSpace.x6) {
-                    brandHeader
-
-                    VStack(alignment: .leading, spacing: AliveSpace.x2) {
-                        Text("让余额活到发薪日")
-                            .font(.system(size: 40, weight: .semibold))
-                            .foregroundStyle(AliveColor.ink)
-                        Text("把剩余金额分给此后的每一天。")
-                            .font(AliveFont.sans(16, relativeTo: .body))
-                            .lineSpacing(7)
-                            .foregroundStyle(AliveColor.inkSecondary)
-                    }
-
-                    amountSection
-                    dateSection
-
+                SurfaceCard {
                     VStack(alignment: .leading, spacing: AliveSpace.x3) {
-                        InlineError(message: errorText ?? validationMessage)
-                        PrimaryAction(
-                            title: "开始",
-                            systemImage: "sparkle",
-                            isBusy: isSubmitting
-                        ) {
-                            submit()
+                        FieldLabel(text: "当前剩余金额")
+                        HStack(alignment: .firstTextBaseline, spacing: AliveSpace.x2) {
+                            Text("¥")
+                                .font(AliveFont.display(32))
+                                .foregroundStyle(AliveColor.inkSecondary)
+                                .accessibilityHidden(true)
+                            TextField("0.00", text: $amountText)
+                                .font(AliveFont.display(52))
+                                .monospacedDigit()
+                                .tracking(-1.5)
+                                .foregroundStyle(AliveColor.ink)
+                                .keyboardType(.decimalPad)
+                                .textFieldStyle(.plain)
+                                .focused($isAmountFocused)
+                                .lineLimit(1)
+                                .accessibilityLabel("当前剩余金额")
+                                .accessibilityHint("最多 9 位整数和 2 位小数，必须大于 0。")
                         }
-                        .disabled(!canSubmit)
-                        .opacity(canSubmit ? 1 : 0.44)
-
-                        Text("起始日默认是今天；未来的起始日会先进入待开始状态。")
-                            .font(AliveFont.sans(12, relativeTo: .caption))
+                        Rectangle()
+                            .fill(AliveColor.separator)
+                            .frame(height: 0.5)
+                        Text("人民币 CNY")
+                            .font(AliveFont.sans(12, relativeTo: .footnote))
                             .foregroundStyle(AliveColor.inkTertiary)
-                            .lineSpacing(4)
                     }
                 }
-                .padding(.horizontal, AliveSpace.pageInset)
-                .padding(.top, AliveSpace.x5)
-                .padding(.bottom, AliveSpace.x8)
+
+                SurfaceCard(padding: 0) {
+                    VStack(spacing: 0) {
+                        dateRow(title: "下一次发薪日", selection: $payday)
+                        Divider().padding(.leading, AliveSpace.x5)
+                        dateRow(title: "起始日", selection: $startDate)
+                    }
+                }
+
+                VStack(alignment: .leading, spacing: AliveSpace.x3) {
+                    InlineError(message: errorText ?? validationMessage)
+                    PrimaryAction(title: "开始", systemImage: "arrow.right", isBusy: isSubmitting) {
+                        submit()
+                    }
+                    .disabled(!canSubmit)
+                    .accessibilityHint("创建预算周期并进入今日主屏。")
+
+                    Text("起始日默认是今天；未来的起始日会先进入待开始状态。")
+                        .font(AliveFont.sans(12, relativeTo: .footnote))
+                        .foregroundStyle(AliveColor.inkTertiary)
+                }
             }
-            .scrollDismissesKeyboard(.interactively)
+            .padding(.horizontal, AliveSpace.pageInset)
+            .padding(.top, AliveSpace.x8)
+            .padding(.bottom, AliveSpace.x10)
         }
+        .background(AliveColor.canvas)
+        .scrollDismissesKeyboard(.interactively)
         .toolbar {
             ToolbarItemGroup(placement: .keyboard) {
                 Spacer()
-                Button("完成") {
-                    isAmountFocused = false
-                }
+                Button("完成") { isAmountFocused = false }
             }
         }
         .onAppear {
@@ -105,67 +138,19 @@ struct SetupView: View {
         }
     }
 
-    private var brandHeader: some View {
-        HStack(spacing: AliveSpace.x2) {
-            OrnamentalRingMark()
-            Text("ALIVE")
-                .font(AliveFont.sans(15, weight: .semibold, relativeTo: .headline))
-                .tracking(3.2)
-                .foregroundStyle(AliveColor.ink)
-            Spacer()
-        }
-    }
-
-    private var amountSection: some View {
-        VStack(alignment: .leading, spacing: AliveSpace.x2) {
-            FieldLabel(text: "当前剩余金额")
-            HStack(alignment: .firstTextBaseline, spacing: AliveSpace.x2) {
-                Text("¥")
-                    .font(AliveFont.display(34))
-                    .foregroundStyle(AliveColor.brass)
-                TextField("0.00", text: $amountText)
-                    .font(AliveFont.display(54))
-                    .monospacedDigit()
-                    .tracking(-2)
-                    .foregroundStyle(AliveColor.ink)
-                    .keyboardType(.decimalPad)
-                    .textFieldStyle(.plain)
-                    .focused($isAmountFocused)
-                    .accessibilityLabel("当前剩余金额")
-            }
-            BrassRule()
-            Text("人民币 CNY")
-                .font(AliveFont.sans(11, weight: .medium, relativeTo: .caption2))
-                .tracking(1.2)
-                .foregroundStyle(AliveColor.inkTertiary)
-        }
-    }
-
-    private var dateSection: some View {
-        VStack(spacing: 0) {
-            dateRow(title: "下一次发薪日", selection: $payday)
-            BrassRule(subtle: true)
-            dateRow(title: "起始日", selection: $startDate)
-            BrassRule(subtle: true)
-        }
-    }
-
     private func dateRow(title: String, selection: Binding<Date>) -> some View {
         HStack {
             Text(title)
                 .font(AliveFont.sans(15, weight: .medium, relativeTo: .body))
                 .foregroundStyle(AliveColor.inkSecondary)
             Spacer()
-            DatePicker(
-                title,
-                selection: selection,
-                displayedComponents: .date
-            )
-            .labelsHidden()
-            .datePickerStyle(.compact)
-            .tint(AliveColor.ink)
+            DatePicker(title, selection: selection, displayedComponents: .date)
+                .labelsHidden()
+                .datePickerStyle(.compact)
+                .tint(AliveColor.accent)
         }
-        .frame(minHeight: 54)
+        .frame(minHeight: 56)
+        .padding(.horizontal, AliveSpace.x5)
         .accessibilityElement(children: .contain)
     }
 
