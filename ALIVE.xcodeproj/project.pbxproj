@@ -9,7 +9,6 @@
 /* Begin PBXBuildFile section */
 		00B044F478FE531A196E7475 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = E921ADB5DB83AA64432D7C2C /* PrivacyInfo.xcprivacy */; };
 		069A6F58AFEECB822E7CBAF4 /* WelcomeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CDA6371BF1CFAC0947CE3609 /* WelcomeView.swift */; };
-		0744CDD3C701EDD8E62D1396 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = E921ADB5DB83AA64432D7C2C /* PrivacyInfo.xcprivacy */; };
 		13E331E5EC843C5BE6014B66 /* AliveCore.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 0A258B8A5A1FEF05896C1ECD /* AliveCore.framework */; };
 		148FF545E62D7B21405D33AE /* AliveComponents.swift in Sources */ = {isa = PBXBuildFile; fileRef = BE86C6AD2E9A835B3084BB7B /* AliveComponents.swift */; };
 		14D1FC238FCC8BFC59802C80 /* BudgetProjection.swift in Sources */ = {isa = PBXBuildFile; fileRef = C9A41DC49DD21F8D0FA30EF7 /* BudgetProjection.swift */; };
@@ -25,10 +24,7 @@
 		332413BCE0BEA7D57FDB4AA3 /* OFL-Commissioner.txt in Resources */ = {isa = PBXBuildFile; fileRef = 1F0C49BD2A83657A585D72B4 /* OFL-Commissioner.txt */; };
 		352843FDDEB935EDA4C2CB19 /* AliveTheme.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8AF52C3BACCA8CBC78FD19E1 /* AliveTheme.swift */; };
 		3683BF914537A92F9C949268 /* SwiftDataBudgetRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = 96F9C123B6D688EEFB85D54E /* SwiftDataBudgetRepository.swift */; };
-		3DACFF019DF41345A6AE0DDC /* AliveRouteIntents.swift in Sources */ = {isa = PBXBuildFile; fileRef = FA50E5D906908BCEDAFB442C /* AliveRouteIntents.swift */; };
-		467B5861B56335CD53C70130 /* AliveRouteIntents.swift in Sources */ = {isa = PBXBuildFile; fileRef = FA50E5D906908BCEDAFB442C /* AliveRouteIntents.swift */; };
 		4AD574B77AEDE1BE2A533D06 /* Commissioner-SemiBold.ttf in Resources */ = {isa = PBXBuildFile; fileRef = FB4B29B60927E38FB9B59F63 /* Commissioner-SemiBold.ttf */; };
-		4B158211B5D3EFBE69CF5005 /* PendingAppRouteStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 012196174BB786B1CCFF79B1 /* PendingAppRouteStore.swift */; };
 		4D821D2711B25818BC10F2F7 /* Commissioner-Regular.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 8355753AD2EA3603A2229BF2 /* Commissioner-Regular.ttf */; };
 		4FA477A2A8F680EEDFEEB4C5 /* DomainSupportTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2D6FD1F9724BADA5FD9DB8D4 /* DomainSupportTests.swift */; };
 		549A5DFA74F5C2660E25009B /* SetupView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BA959ED42AE075AED6F7EB8A /* SetupView.swift */; };
@@ -40,7 +36,6 @@
 		697F9021D3DCF1D61B414D9A /* BudgetResolver.swift in Sources */ = {isa = PBXBuildFile; fileRef = BBCCE4D76E56E50C42DCDAFB /* BudgetResolver.swift */; };
 		7A22E5B18D188FDE43FCB3F3 /* AppModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = ECEA17B0ECBEA9F29CD5E49D /* AppModel.swift */; };
 		821D429B15B0BE6990BC03F8 /* BudgetCalendar.swift in Sources */ = {isa = PBXBuildFile; fileRef = 626A58B3DE833759224BA4CF /* BudgetCalendar.swift */; };
-		83D56F9119D97A46113B2529 /* BudgetTimelineProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = 02A5187592F07F2E0052BAE0 /* BudgetTimelineProvider.swift */; };
 		84DE82AB385ED384FE6987B7 /* SwiftDataModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 03E4EB269A3CBF8C5A207ABC /* SwiftDataModels.swift */; };
 		96C5D3D9F144DE904D1F4F5E /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 1386285F0042697C40EBAF53 /* Assets.xcassets */; };
 		98C7F5CDE8FD1FC6CF296D62 /* BudgetModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = D7F9D8B385E99CBA0E211398 /* BudgetModels.swift */; };
@@ -51,13 +46,12 @@
 		AB258D072BF40F1373C5795B /* AliveSchema.swift in Sources */ = {isa = PBXBuildFile; fileRef = CE547C4DB38C8338F0E9284A /* AliveSchema.swift */; };
 		AD49D043DBCF4263AC7A5089 /* BalanceSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = FCE9035707853A32B241000C /* BalanceSheet.swift */; };
 		BED21C8C68D583F06BF56963 /* MoneyFormatter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2D316D0AA2832D4B50208CDF /* MoneyFormatter.swift */; };
-		C1B791782661F0836FECBE4A /* BudgetSnapshotStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2399A6AB872C144724C98FA3 /* BudgetSnapshotStore.swift */; };
+		C8767350CFF719C82F28FAF2 /* AliveRouteIntents.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1703AE69E0B53FECAB749F0B /* AliveRouteIntents.swift */; };
 		CBB18980FBE2F8DE3A4EB5B8 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 52F37BCDE720C380B7805280 /* SettingsView.swift */; };
 		D072404222E3F6B2F7255382 /* WidgetStyle.swift in Sources */ = {isa = PBXBuildFile; fileRef = D8FB03DC44513C4E54E6CED8 /* WidgetStyle.swift */; };
 		D24A677EAA3FCD74A4BBF31C /* Commissioner-Medium.ttf in Resources */ = {isa = PBXBuildFile; fileRef = FA9029C0561AA26C321AF43A /* Commissioner-Medium.ttf */; };
 		D5BF39F68A8EF2058E02B130 /* WelcomeController.swift in Sources */ = {isa = PBXBuildFile; fileRef = BECD9FFE301E842B29EE5D35 /* WelcomeController.swift */; };
 		E0759C25786D7FCE0C832D7A /* AliveFormatting.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4AC6A0B0A1F96B7FF5B170ED /* AliveFormatting.swift */; };
-		E35EB89649B3AB81FA72DC9B /* AliveBudgetWidget.swift in Sources */ = {isa = PBXBuildFile; fileRef = FD60CB7BAA6C73B117F8C01D /* AliveBudgetWidget.swift */; };
 		F9D859A5E20F135292A6CFAC /* QuickExpenseSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 99547E8BF789AA0CE890A2CF /* QuickExpenseSheet.swift */; };
 		FD3971E6DEC5C9B560D26171 /* BudgetResolverTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 14F3965BD4C673C0F3EB8E75 /* BudgetResolverTests.swift */; };
 /* End PBXBuildFile section */
@@ -109,18 +103,16 @@
 
 /* Begin PBXFileReference section */
 		00F7700FC55FFA92CE5BE225 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
-		012196174BB786B1CCFF79B1 /* PendingAppRouteStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PendingAppRouteStore.swift; sourceTree = "<group>"; };
-		02A5187592F07F2E0052BAE0 /* BudgetTimelineProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BudgetTimelineProvider.swift; sourceTree = "<group>"; };
 		02C3B78EDD31BDA3BE67FFF1 /* SwiftDataBudgetRepositoryTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SwiftDataBudgetRepositoryTests.swift; sourceTree = "<group>"; };
 		03E4EB269A3CBF8C5A207ABC /* SwiftDataModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SwiftDataModels.swift; sourceTree = "<group>"; };
 		0A258B8A5A1FEF05896C1ECD /* AliveCore.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = AliveCore.framework; sourceTree = BUILT_PRODUCTS_DIR; };
 		1386285F0042697C40EBAF53 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		14138966D07847C7392E4D1E /* OFL-Gloock.txt */ = {isa = PBXFileReference; lastKnownFileType = text; path = "OFL-Gloock.txt"; sourceTree = "<group>"; };
 		14F3965BD4C673C0F3EB8E75 /* BudgetResolverTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BudgetResolverTests.swift; sourceTree = "<group>"; };
+		1703AE69E0B53FECAB749F0B /* AliveRouteIntents.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AliveRouteIntents.swift; sourceTree = "<group>"; };
 		1B3245FA16B92BAF51698D58 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		1F0C49BD2A83657A585D72B4 /* OFL-Commissioner.txt */ = {isa = PBXFileReference; lastKnownFileType = text; path = "OFL-Commissioner.txt"; sourceTree = "<group>"; };
 		209AAA0FA99BEB0003BDCADE /* AliveApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AliveApp.swift; sourceTree = "<group>"; };
-		2399A6AB872C144724C98FA3 /* BudgetSnapshotStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BudgetSnapshotStore.swift; sourceTree = "<group>"; };
 		29523033BA6EDBD02CF48AC0 /* BudgetLiveActivity.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BudgetLiveActivity.swift; sourceTree = "<group>"; };
 		2D316D0AA2832D4B50208CDF /* MoneyFormatter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MoneyFormatter.swift; sourceTree = "<group>"; };
 		2D6FD1F9724BADA5FD9DB8D4 /* DomainSupportTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DomainSupportTests.swift; sourceTree = "<group>"; };
@@ -138,7 +130,6 @@
 		96F9C123B6D688EEFB85D54E /* SwiftDataBudgetRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SwiftDataBudgetRepository.swift; sourceTree = "<group>"; };
 		99547E8BF789AA0CE890A2CF /* QuickExpenseSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QuickExpenseSheet.swift; sourceTree = "<group>"; };
 		A60AE0965865E9F34E3DC390 /* Gloock-Regular.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "Gloock-Regular.ttf"; sourceTree = "<group>"; };
-		A7C74E6DF6A2DE4BA7F7C5E6 /* Alive.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = Alive.entitlements; sourceTree = "<group>"; };
 		B2D0B9993E0CC90DA4C1A500 /* Alive.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = Alive.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		BA959ED42AE075AED6F7EB8A /* SetupView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SetupView.swift; sourceTree = "<group>"; };
 		BBCCE4D76E56E50C42DCDAFB /* BudgetResolver.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BudgetResolver.swift; sourceTree = "<group>"; };
@@ -153,16 +144,13 @@
 		CE547C4DB38C8338F0E9284A /* AliveSchema.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AliveSchema.swift; sourceTree = "<group>"; };
 		D0492AA1536634535AAA05EA /* AppRoute.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppRoute.swift; sourceTree = "<group>"; };
 		D7F9D8B385E99CBA0E211398 /* BudgetModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BudgetModels.swift; sourceTree = "<group>"; };
-		D8C4F86520865EBBA2F0EFA0 /* AliveWidgets.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = AliveWidgets.entitlements; sourceTree = "<group>"; };
 		D8FB03DC44513C4E54E6CED8 /* WidgetStyle.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WidgetStyle.swift; sourceTree = "<group>"; };
 		E921ADB5DB83AA64432D7C2C /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; path = PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
 		ECEA17B0ECBEA9F29CD5E49D /* AppModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppModel.swift; sourceTree = "<group>"; };
 		EECFC6C0392C7EB78F39AB07 /* BudgetActivityController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BudgetActivityController.swift; sourceTree = "<group>"; };
-		FA50E5D906908BCEDAFB442C /* AliveRouteIntents.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AliveRouteIntents.swift; sourceTree = "<group>"; };
 		FA9029C0561AA26C321AF43A /* Commissioner-Medium.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "Commissioner-Medium.ttf"; sourceTree = "<group>"; };
 		FB4B29B60927E38FB9B59F63 /* Commissioner-SemiBold.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "Commissioner-SemiBold.ttf"; sourceTree = "<group>"; };
 		FCE9035707853A32B241000C /* BalanceSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BalanceSheet.swift; sourceTree = "<group>"; };
-		FD60CB7BAA6C73B117F8C01D /* AliveBudgetWidget.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AliveBudgetWidget.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -193,23 +181,14 @@
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
-		0C5869951855A983293138C1 /* Shared */ = {
-			isa = PBXGroup;
-			children = (
-				6CF4572DF46300F051BD27EA /* Intents */,
-			);
-			path = Shared;
-			sourceTree = "<group>";
-		};
 		110A22BCD07872F57FF74F24 /* AliveWidgets */ = {
 			isa = PBXGroup;
 			children = (
 				CE373525630A8327622EB601 /* AliveWidgetBundle.swift */,
-				D8C4F86520865EBBA2F0EFA0 /* AliveWidgets.entitlements */,
 				00F7700FC55FFA92CE5BE225 /* Info.plist */,
 				D8FB03DC44513C4E54E6CED8 /* WidgetStyle.swift */,
+				1CF918CCB9657FD2A6D9A715 /* Intents */,
 				39103CF9FA72ED2D0A7A4822 /* LiveActivity */,
-				4C8DCCF44E8C562216406210 /* Widgets */,
 			);
 			path = AliveWidgets;
 			sourceTree = "<group>";
@@ -223,6 +202,14 @@
 				F9547D99F91675EB5971F505 /* Licenses */,
 			);
 			path = Resources;
+			sourceTree = "<group>";
+		};
+		1CF918CCB9657FD2A6D9A715 /* Intents */ = {
+			isa = PBXGroup;
+			children = (
+				1703AE69E0B53FECAB749F0B /* AliveRouteIntents.swift */,
+			);
+			path = Intents;
 			sourceTree = "<group>";
 		};
 		2EFADD9999F5EB82DC82EAA1 /* Screens */ = {
@@ -277,7 +264,6 @@
 		471057346A322F86B4409B55 /* Alive */ = {
 			isa = PBXGroup;
 			children = (
-				A7C74E6DF6A2DE4BA7F7C5E6 /* Alive.entitlements */,
 				1B3245FA16B92BAF51698D58 /* Info.plist */,
 				91E7BBF4440B39234D370B43 /* App */,
 				7BC524BE0D7C9230CFDAF081 /* DesignSystem */,
@@ -293,23 +279,6 @@
 				2D316D0AA2832D4B50208CDF /* MoneyFormatter.swift */,
 			);
 			path = Formatting;
-			sourceTree = "<group>";
-		};
-		4C8DCCF44E8C562216406210 /* Widgets */ = {
-			isa = PBXGroup;
-			children = (
-				FD60CB7BAA6C73B117F8C01D /* AliveBudgetWidget.swift */,
-				02A5187592F07F2E0052BAE0 /* BudgetTimelineProvider.swift */,
-			);
-			path = Widgets;
-			sourceTree = "<group>";
-		};
-		6CF4572DF46300F051BD27EA /* Intents */ = {
-			isa = PBXGroup;
-			children = (
-				FA50E5D906908BCEDAFB442C /* AliveRouteIntents.swift */,
-			);
-			path = Intents;
 			sourceTree = "<group>";
 		};
 		72A42DD201C67CCC2A0EE012 /* Products */ = {
@@ -353,7 +322,6 @@
 				E4998FBF8B665E069903F1DF /* AliveCore */,
 				AEF63C62939E3B6C41B42CE3 /* AliveTests */,
 				110A22BCD07872F57FF74F24 /* AliveWidgets */,
-				0C5869951855A983293138C1 /* Shared */,
 				72A42DD201C67CCC2A0EE012 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -397,7 +365,6 @@
 			children = (
 				CE547C4DB38C8338F0E9284A /* AliveSchema.swift */,
 				8B52D8DB0B6652537DEC4F3E /* BudgetRepository.swift */,
-				2399A6AB872C144724C98FA3 /* BudgetSnapshotStore.swift */,
 				96F9C123B6D688EEFB85D54E /* SwiftDataBudgetRepository.swift */,
 				03E4EB269A3CBF8C5A207ABC /* SwiftDataModels.swift */,
 			);
@@ -408,7 +375,6 @@
 			isa = PBXGroup;
 			children = (
 				D0492AA1536634535AAA05EA /* AppRoute.swift */,
-				012196174BB786B1CCFF79B1 /* PendingAppRouteStore.swift */,
 			);
 			path = Routes;
 			sourceTree = "<group>";
@@ -471,7 +437,6 @@
 			buildConfigurationList = 4C8A7E7E748273433343C5CF /* Build configuration list for PBXNativeTarget "AliveWidgets" */;
 			buildPhases = (
 				88C7855F10E6C31F663D8609 /* Sources */,
-				D843F4F4E710E09C289F2CFC /* Resources */,
 				79621BF96F363DD36D31DBC4 /* Frameworks */,
 			);
 			buildRules = (
@@ -553,14 +518,6 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
-		D843F4F4E710E09C289F2CFC /* Resources */ = {
-			isa = PBXResourcesBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-				0744CDD3C701EDD8E62D1396 /* PrivacyInfo.xcprivacy in Resources */,
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-		};
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
@@ -571,7 +528,6 @@
 				55249DE32B82EE70300D6E17 /* AliveApp.swift in Sources */,
 				148FF545E62D7B21405D33AE /* AliveComponents.swift in Sources */,
 				E0759C25786D7FCE0C832D7A /* AliveFormatting.swift in Sources */,
-				467B5861B56335CD53C70130 /* AliveRouteIntents.swift in Sources */,
 				352843FDDEB935EDA4C2CB19 /* AliveTheme.swift in Sources */,
 				7A22E5B18D188FDE43FCB3F3 /* AppModel.swift in Sources */,
 				AD49D043DBCF4263AC7A5089 /* BalanceSheet.swift in Sources */,
@@ -601,11 +557,9 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				E35EB89649B3AB81FA72DC9B /* AliveBudgetWidget.swift in Sources */,
-				3DACFF019DF41345A6AE0DDC /* AliveRouteIntents.swift in Sources */,
+				C8767350CFF719C82F28FAF2 /* AliveRouteIntents.swift in Sources */,
 				58EC0DD6C111B5CD45B00CF5 /* AliveWidgetBundle.swift in Sources */,
 				A60952DBE81F45FE89D4AC00 /* BudgetLiveActivity.swift in Sources */,
-				83D56F9119D97A46113B2529 /* BudgetTimelineProvider.swift in Sources */,
 				D072404222E3F6B2F7255382 /* WidgetStyle.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -622,10 +576,8 @@
 				14D1FC238FCC8BFC59802C80 /* BudgetProjection.swift in Sources */,
 				9AD6EB86DBBA5E4E61120999 /* BudgetRepository.swift in Sources */,
 				697F9021D3DCF1D61B414D9A /* BudgetResolver.swift in Sources */,
-				C1B791782661F0836FECBE4A /* BudgetSnapshotStore.swift in Sources */,
 				29DA31BC0C28CCFA8FB69B09 /* LiveActivityWindow.swift in Sources */,
 				BED21C8C68D583F06BF56963 /* MoneyFormatter.swift in Sources */,
-				4B158211B5D3EFBE69CF5005 /* PendingAppRouteStore.swift in Sources */,
 				3683BF914537A92F9C949268 /* SwiftDataBudgetRepository.swift in Sources */,
 				84DE82AB385ED384FE6987B7 /* SwiftDataModels.swift in Sources */,
 			);
@@ -732,7 +684,6 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
-				CODE_SIGN_ENTITLEMENTS = Alive/Alive.entitlements;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				ENABLE_PREVIEWS = YES;
 				INFOPLIST_FILE = Alive/Info.plist;
@@ -744,7 +695,7 @@
 				PRODUCT_BUNDLE_IDENTIFIER = cn.bobochang.alive;
 				PRODUCT_NAME = ALIVE;
 				SDKROOT = iphoneos;
-				TARGETED_DEVICE_FAMILY = "1,2";
+				TARGETED_DEVICE_FAMILY = 1;
 			};
 			name = Debug;
 		};
@@ -753,7 +704,6 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
-				CODE_SIGN_ENTITLEMENTS = Alive/Alive.entitlements;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				ENABLE_PREVIEWS = YES;
 				INFOPLIST_FILE = Alive/Info.plist;
@@ -765,7 +715,7 @@
 				PRODUCT_BUNDLE_IDENTIFIER = cn.bobochang.alive;
 				PRODUCT_NAME = ALIVE;
 				SDKROOT = iphoneos;
-				TARGETED_DEVICE_FAMILY = "1,2";
+				TARGETED_DEVICE_FAMILY = 1;
 			};
 			name = Release;
 		};
@@ -782,7 +732,7 @@
 				);
 				PRODUCT_BUNDLE_IDENTIFIER = cn.bobochang.alive.tests;
 				SDKROOT = iphoneos;
-				TARGETED_DEVICE_FAMILY = "1,2";
+				TARGETED_DEVICE_FAMILY = 1;
 			};
 			name = Debug;
 		};
@@ -799,7 +749,7 @@
 				);
 				PRODUCT_BUNDLE_IDENTIFIER = cn.bobochang.alive.tests;
 				SDKROOT = iphoneos;
-				TARGETED_DEVICE_FAMILY = "1,2";
+				TARGETED_DEVICE_FAMILY = 1;
 			};
 			name = Release;
 		};
@@ -870,7 +820,6 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				APPLICATION_EXTENSION_API_ONLY = YES;
-				CODE_SIGN_ENTITLEMENTS = AliveWidgets/AliveWidgets.entitlements;
 				INFOPLIST_FILE = AliveWidgets/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
@@ -878,10 +827,10 @@
 					"@executable_path/../../Frameworks",
 				);
 				PRODUCT_BUNDLE_IDENTIFIER = cn.bobochang.alive.widgets;
-				PRODUCT_NAME = "ALIVE Widgets";
+				PRODUCT_NAME = AliveWidgets;
 				SDKROOT = iphoneos;
 				SKIP_INSTALL = YES;
-				TARGETED_DEVICE_FAMILY = "1,2";
+				TARGETED_DEVICE_FAMILY = 1;
 			};
 			name = Debug;
 		};
@@ -889,7 +838,6 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				APPLICATION_EXTENSION_API_ONLY = YES;
-				CODE_SIGN_ENTITLEMENTS = AliveWidgets/AliveWidgets.entitlements;
 				INFOPLIST_FILE = AliveWidgets/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
@@ -897,10 +845,10 @@
 					"@executable_path/../../Frameworks",
 				);
 				PRODUCT_BUNDLE_IDENTIFIER = cn.bobochang.alive.widgets;
-				PRODUCT_NAME = "ALIVE Widgets";
+				PRODUCT_NAME = AliveWidgets;
 				SDKROOT = iphoneos;
 				SKIP_INSTALL = YES;
-				TARGETED_DEVICE_FAMILY = "1,2";
+				TARGETED_DEVICE_FAMILY = 1;
 			};
 			name = Release;
 		};

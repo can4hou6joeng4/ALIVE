@@ -111,11 +111,6 @@ struct DomainSupportTests {
         #expect(BudgetCalendar().timeZone.identifier == "Asia/Shanghai")
     }
 
-    @Test("共享偏好键保持稳定")
-    func sharedPreferenceKeys() {
-        #expect(SharedPreferenceKeys.appGroupID == "group.cn.bobochang.alive")
-    }
-
     @Test("Live Activity 过期时间取 8 小时、午夜和发薪日中最早值")
     func liveActivityStaleDate() {
         let openedAt = calendar.calendar.date(
@@ -140,35 +135,6 @@ struct DomainSupportTests {
 
         let window = LiveActivityWindow.calculate(snapshot: snapshot, openedAt: openedAt, calendar: calendar)
         #expect(window.staleDate == calendar.nextMidnight(after: openedAt))
-    }
-
-    @Test("共享快照 JSON 可往返")
-    func snapshotDocumentRoundTrip() throws {
-        let now = Date(timeIntervalSince1970: 1_800_000_000)
-        let snapshot = BudgetSnapshot(
-            cycleID: UUID(),
-            phase: .active,
-            todayBudgetCents: Decimal(string: "10666.666666")!,
-            todayAvailableCents: Decimal(string: "6000.5")!,
-            todaySpentCents: 3_999,
-            currentBalanceCents: 96_001,
-            daysRemaining: 9,
-            startDate: now,
-            payday: now.addingTimeInterval(9 * 24 * 60 * 60),
-            paydayAnchorDay: 31,
-            needsBalanceReview: false,
-            generatedAt: now
-        )
-        let document = BudgetSnapshotDocument(
-            snapshot: snapshot,
-            nextRefresh: calendar.nextMidnight(after: now)
-        )
-        let directory = FileManager.default.temporaryDirectory
-            .appending(path: UUID().uuidString, directoryHint: .isDirectory)
-        let store = BudgetSnapshotStore(directoryURL: directory)
-        try store.write(document)
-        let decoded = try #require(store.read())
-        #expect(decoded == document)
     }
 
     @Test("深链解析只接受 known route")

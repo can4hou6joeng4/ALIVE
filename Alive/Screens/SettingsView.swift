@@ -95,7 +95,7 @@ struct SettingsView: View {
                     Text("跟随系统")
                         .font(AliveFont.sans(15, weight: .semibold, relativeTo: .body))
                         .foregroundStyle(AliveColor.ink)
-                    Text("浅色与深色自动切换，App 与 Widget 保持一致。")
+                    Text("浅色与深色自动切换，App 与实时活动保持一致。")
                         .font(AliveFont.sans(12, relativeTo: .caption))
                         .foregroundStyle(AliveColor.inkTertiary)
                         .fixedSize(horizontal: false, vertical: true)
@@ -108,7 +108,7 @@ struct SettingsView: View {
 
 
     private var liveActivitySection: some View {
-        settingsSection("今日灵动岛") {
+        settingsSection("实时活动") {
             VStack(alignment: .leading, spacing: AliveSpace.x3) {
                 HStack(spacing: AliveSpace.x2) {
                     Circle()
@@ -134,7 +134,7 @@ struct SettingsView: View {
                 }
                 .disabled(liveActivityDisabled)
 
-                Text("单次最长约 8 小时，不自动续期。跨午夜后会标记过期；可以再次手动开启。Widget 用于持续查看。")
+                Text("单次最长约 8 小时，不自动续期。跨午夜后标记为过期，可以重新开启；日常查看请直接使用 App 主屏。")
                     .font(AliveFont.sans(12, relativeTo: .caption))
                     .lineSpacing(5)
                     .foregroundStyle(AliveColor.inkTertiary)
@@ -287,7 +287,7 @@ struct SettingsView: View {
                 Text("数据仅保存在本机。")
                     .font(AliveFont.sans(14, weight: .medium, relativeTo: .subheadline))
                     .foregroundStyle(AliveColor.ink)
-                Text("金额、日期与支出记录保存在 App Group 本地容器中，不接入网络、分析、广告或第三方 SDK。")
+                Text("金额、日期与支出记录保存在本机 App 安全容器中，不接入网络、分析、广告或第三方 SDK。")
                     .font(AliveFont.sans(12, relativeTo: .caption))
                     .lineSpacing(5)
                     .foregroundStyle(AliveColor.inkTertiary)
@@ -356,9 +356,9 @@ struct SettingsView: View {
             return "结束活动"
         }
         if model.activity.status == .stale {
-            return "重新开启今日灵动岛"
+            return "重新开启今日实时活动"
         }
-        return "开启今日灵动岛"
+        return "开启今日实时活动"
     }
 
     private var activitySystemImage: String {

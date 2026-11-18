@@ -80,63 +80,9 @@ enum WidgetFont {
     }
 }
 
-/// A palette resolved to concrete colors for one color scheme.
-///
-/// WidgetKit resolves `containerBackground` and foreground content in different
-/// trait collections, so `Color(uiColor:)` dynamic tokens can pair a light
-/// background with dark text (or vice versa). Resolving every home-screen widget
-/// color from the same effective scheme keeps all surfaces in sync.
-struct WidgetPalette {
-    let scheme: ColorScheme
-    let canvas: Color
-    let card: Color
-    let ink: Color
-    let inkSecondary: Color
-    let inkTertiary: Color
-    let accent: Color
-    let overspend: Color
-    let line: Color
-
-    static func resolved(for scheme: ColorScheme) -> WidgetPalette {
-        if scheme == .dark {
-            return WidgetPalette(
-                scheme: .dark,
-                canvas: color(0x000000),
-                card: color(0x1C1C1E),
-                ink: color(0xFFFFFF),
-                inkSecondary: color(0xEBEBF5),
-                inkTertiary: color(0xA1A1AA),
-                accent: color(0x0A84FF),
-                overspend: color(0xFF9A8A),
-                line: color(0xFFFFFF, opacity: 0.14)
-            )
-        }
-        return WidgetPalette(
-            scheme: .light,
-            canvas: color(0xF2F2F7),
-            card: color(0xFFFFFF),
-            ink: color(0x000000),
-            inkSecondary: color(0x3C3C43),
-            inkTertiary: color(0x5B5B61),
-            accent: color(0x007AFF),
-            overspend: color(0xB3261E),
-            line: color(0x000000, opacity: 0.10)
-        )
-    }
-
-    private static func color(_ hex: UInt32, opacity: Double = 1) -> Color {
-        Color(
-            red: CGFloat((hex >> 16) & 0xFF) / 255,
-            green: CGFloat((hex >> 8) & 0xFF) / 255,
-            blue: CGFloat(hex & 0xFF) / 255,
-            opacity: opacity
-        )
-    }
-}
-
 enum WidgetAmount {
     /// Above ¥1,000,000 the fixed two-decimal currency string is too long for a
-    /// single widget line, so the compact representation is used as a fallback.
+    /// single Live Activity line, so the compact representation is used as a fallback.
     static let compactThresholdCents: Decimal = 100_000_000
 
     static func standard(cents: Decimal) -> String {
@@ -150,16 +96,4 @@ enum WidgetAmount {
         "¥\(MoneyFormatter.compactYuan(cents: cents))"
     }
 
-    static func text(for state: BudgetDisplayState) -> String {
-        state.isZeroBalance ? "—" : standard(cents: state.amountCents)
-    }
-}
-
-struct WidgetDivider: View {
-    var body: some View {
-        Rectangle()
-            .fill(WidgetColor.line)
-            .frame(height: 0.5)
-            .accessibilityHidden(true)
-    }
 }

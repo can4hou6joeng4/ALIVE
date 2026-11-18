@@ -424,8 +424,8 @@ struct BudgetResolverTests {
         }
     }
 
-    @Test("Widget 投影在跨日后按余额重算且跨发薪日结转")
-    func widgetProjection() throws {
+    @Test("投影在跨日后按余额重算且跨发薪日结转")
+    func snapshotProjection() throws {
         let start = date(2026, 11, 17, hour: 8)
         let initial = try resolver.initialResolution(
             setup: CycleSetup(initialBalanceCents: 100_000, startDate: start, nextPayday: date(2026, 11, 27)),

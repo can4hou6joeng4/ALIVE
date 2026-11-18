@@ -67,7 +67,10 @@ struct RootView: View {
         .onChange(of: model.loadState) { _, state in
             if case .failed = state { finishWelcome() }
         }
-        .onOpenURL { _ in finishWelcome() }
+        .onOpenURL { url in
+            finishWelcome()
+            model.handle(url: url)
+        }
         .onChange(of: model.isSettingsPresented) { _, presented in
             if presented { finishWelcome() }
         }

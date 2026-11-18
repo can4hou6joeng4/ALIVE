@@ -2,7 +2,6 @@ import AliveCore
 import Foundation
 import Observation
 import SwiftUI
-import WidgetKit
 
 @MainActor
 @Observable
@@ -66,7 +65,6 @@ final class AppModel {
 
             let snapshot = try await repository.snapshot(at: Date())
             await commit(snapshot, openQueuedRoute: true, attachActivity: true)
-            applyPendingIntentRouteIfNeeded()
         } catch {
             loadState = .failed(error.localizedDescription)
         }
@@ -106,7 +104,6 @@ final class AppModel {
             let snapshot = try await repository.snapshot(at: Date())
             await commit(snapshot)
             await activity.attach(to: snapshot)
-            applyPendingIntentRouteIfNeeded()
         } catch BudgetError.noCycle {
             await enterSetupWithoutCycle()
         } catch {
@@ -236,11 +233,6 @@ final class AppModel {
         apply(route)
     }
 
-    private func applyPendingIntentRouteIfNeeded() {
-        guard let route = PendingAppRouteStore.consume() else { return }
-        handle(url: route.url)
-    }
-
     private func commit(
         _ snapshot: BudgetSnapshot,
         openQueuedRoute: Bool = true,
@@ -263,7 +255,6 @@ final class AppModel {
         }
         loadState = .ready
 
-        WidgetCenter.shared.reloadAllTimelines()
         if attachActivity {
             await activity.attach(to: snapshot)
         } else {
@@ -282,15 +273,9 @@ final class AppModel {
         sheet = nil
         path = []
 
-        if let snapshotStore = try? BudgetSnapshotStore.appGroup() {
-            snapshotStore.clear()
-        }
-
         await activity.end()
-        WidgetCenter.shared.reloadAllTimelines()
 
         loadState = .setup
-        applyPendingIntentRouteIfNeeded()
     }
 
     private func requireRepository() throws -> any BudgetRepository {

@@ -31,7 +31,7 @@ public enum MoneyFormatter {
         return formatter.string(from: NSDecimalNumber(decimal: yuan)) ?? "0.00"
     }
 
-    /// Compact amount for accessory widgets. Keeps Decimal end-to-end.
+    /// Compact amount for narrow Live Activity surfaces. Keeps Decimal end-to-end.
     public static func compactYuan(cents: Decimal) -> String {
         let yuan = cents / Decimal(100)
         let formatter = NumberFormatter()

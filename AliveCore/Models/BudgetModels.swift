@@ -173,7 +173,7 @@ public struct BudgetSnapshot: Identifiable, Codable, Hashable, Sendable {
     }
 }
 
-/// Presentation-only state shared by the App, Widget and Live Activity.
+/// Presentation-only state shared by the App and Live Activity.
 ///
 /// The domain keeps `BudgetPhase` limited to pending/active/overspent so the
 /// persisted calculations stay stable. This type adds the missing zero and

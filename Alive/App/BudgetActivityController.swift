@@ -12,7 +12,7 @@ enum ActivityControlError: Error, LocalizedError {
         case .unsupported:
             "系统未允许实时活动，或当前设备不支持。"
         case .pendingCycle:
-            "周期开始后才能开启今日灵动岛。"
+            "周期开始后才能开启今日实时活动。"
         }
     }
 }
@@ -43,11 +43,11 @@ final class BudgetActivityController {
         case .unavailable:
             "系统未允许实时活动"
         case .inactive:
-            "今日灵动岛未开启"
+            "今日实时活动未开启"
         case .active:
-            "今日灵动岛已开启"
+            "今日实时活动已开启"
         case .stale:
-            "今日灵动岛已过期"
+            "今日实时活动已过期"
         }
     }
 
