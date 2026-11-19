@@ -228,6 +228,33 @@ struct BudgetResolverTests {
         }
     }
 
+    @Test("待开始倒计时是距起始日的日历日数，不是周期天数")
+    func pendingCountdown() throws {
+        let resolution = try resolver.initialResolution(
+            setup: CycleSetup(
+                initialBalanceCents: 120_000,
+                startDate: date(2026, 11, 20),
+                nextPayday: date(2026, 12, 20)
+            ),
+            now: date(2026, 11, 17, hour: 9)
+        )
+        let threeDaysBefore = try #require(resolution.snapshot)
+        #expect(threeDaysBefore.daysRemaining == 30)
+        #expect(threeDaysBefore.daysUntilStart == 3)
+
+        let nightBefore = try #require(
+            resolver.resolve(resolution.state, now: date(2026, 11, 19, hour: 23, minute: 59)).snapshot
+        )
+        #expect(nightBefore.phase == .pending)
+        #expect(nightBefore.daysUntilStart == 1)
+
+        let started = try #require(
+            resolver.resolve(resolution.state, now: date(2026, 11, 20)).snapshot
+        )
+        #expect(started.phase == .active)
+        #expect(started.daysUntilStart == 0)
+    }
+
     @Test("到达未来起始日后自动进入进行中")
     func pendingBecomesActive() throws {
         let resolution = try resolver.initialResolution(

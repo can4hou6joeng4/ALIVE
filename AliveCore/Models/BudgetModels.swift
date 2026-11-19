@@ -171,6 +171,16 @@ public struct BudgetSnapshot: Identifiable, Codable, Hashable, Sendable {
     public var displayState: BudgetDisplayState {
         BudgetDisplayState(snapshot: self)
     }
+
+    /// Calendar days from the day this snapshot was generated until the cycle
+    /// starts; 0 once it has started.
+    ///
+    /// This is the pending countdown. `daysRemaining` is not: in the pending
+    /// phase it holds the projected length of the cycle, the divisor of the
+    /// projected daily budget.
+    public var daysUntilStart: Int {
+        max(0, BudgetCalendar().calendarDays(from: generatedAt, to: startDate))
+    }
 }
 
 /// Presentation-only state shared by the App and Live Activity.

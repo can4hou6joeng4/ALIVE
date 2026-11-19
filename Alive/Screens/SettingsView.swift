@@ -62,17 +62,12 @@ struct SettingsView: View {
                 }
                 .padding(.horizontal, AliveSpace.pageInset)
                 .padding(.top, AliveSpace.x4)
-                .padding(.bottom, AliveSpace.x8)
+                .padding(.bottom, AliveSpace.x4)
         }
+        // The keyboard scrolls a focused field only just into view; this keeps the
+        // balance row and its dismiss button clear of the keyboard's top edge.
+        .safeAreaPadding(.bottom, AliveSpace.x4)
         .background(AliveColor.canvas)
-        .toolbar {
-            ToolbarItemGroup(placement: .keyboard) {
-                Spacer()
-                Button("完成") {
-                    isPendingBalanceFocused = false
-                }
-            }
-        }
         .onAppear {
             loadPendingFields(force: true)
         }
@@ -179,22 +174,32 @@ struct SettingsView: View {
         VStack(alignment: .leading, spacing: AliveSpace.x3) {
             VStack(alignment: .leading, spacing: AliveSpace.x1) {
                 FieldLabel(text: "初始余额")
-                HStack(alignment: .firstTextBaseline, spacing: AliveSpace.x2) {
-                    Text("¥")
-                        .font(AliveFont.display(24))
-                        .foregroundStyle(AliveColor.inkTertiary)
-                        .accessibilityHidden(true)
-                    TextField("0.00", text: $pendingBalanceText)
-                        .font(AliveFont.display(30))
-                        .monospacedDigit()
-                        .keyboardType(.decimalPad)
-                        .textFieldStyle(.plain)
-                        .foregroundStyle(AliveColor.ink)
-                        .focused($isPendingBalanceFocused)
-                        .lineLimit(1)
-                        .accessibilityLabel("初始余额")
-                        .accessibilityHint("大于 0，最多 9 位整数和 2 位小数。")
+                HStack(alignment: .center, spacing: AliveSpace.x2) {
+                    HStack(alignment: .firstTextBaseline, spacing: AliveSpace.x2) {
+                        Text("¥")
+                            .font(AliveFont.display(24))
+                            .foregroundStyle(AliveColor.inkTertiary)
+                            .accessibilityHidden(true)
+                        TextField("0.00", text: $pendingBalanceText)
+                            .font(AliveFont.display(30))
+                            .monospacedDigit()
+                            .keyboardType(.decimalPad)
+                            .textFieldStyle(.plain)
+                            .foregroundStyle(AliveColor.ink)
+                            .focused($isPendingBalanceFocused)
+                            .lineLimit(1)
+                            .minimumScaleFactor(AliveFont.amountFieldMinimumScale)
+                            .accessibilityLabel("初始余额")
+                            .accessibilityHint("大于 0，最多 9 位整数和 2 位小数。")
+                    }
+                    if isPendingBalanceFocused {
+                        KeyboardDismissButton {
+                            isPendingBalanceFocused = false
+                        }
+                    }
                 }
+                // Tall enough for the dismiss button, so the row does not jump on focus.
+                .frame(minHeight: 44)
                 Rectangle().fill(AliveColor.separator).frame(height: 0.5)
             }
 
@@ -206,6 +211,7 @@ struct SettingsView: View {
                     DatePicker("起始日", selection: $pendingStartDate, displayedComponents: .date)
                         .labelsHidden()
                         .tint(AliveColor.ink)
+                        .dynamicTypeSize(...DynamicTypeSize.aliveControlLimit)
                         .accessibilityLabel("起始日")
                 }
                 .frame(minHeight: 44, alignment: .leading)
@@ -219,6 +225,7 @@ struct SettingsView: View {
                     DatePicker("发薪日", selection: $pendingPayday, displayedComponents: .date)
                         .labelsHidden()
                         .tint(AliveColor.ink)
+                        .dynamicTypeSize(...DynamicTypeSize.aliveControlLimit)
                         .accessibilityLabel("发薪日")
                 }
                 .frame(minHeight: 44, alignment: .leading)

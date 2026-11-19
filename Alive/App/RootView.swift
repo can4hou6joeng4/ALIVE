@@ -74,6 +74,9 @@ struct RootView: View {
         .onChange(of: model.isSettingsPresented) { _, presented in
             if presented { finishWelcome() }
         }
+        .onChange(of: model.isQuickEntryPresented) { _, presented in
+            if presented { finishWelcome() }
+        }
     }
 
     private func finishWelcome() {
@@ -97,30 +100,57 @@ struct RootView: View {
             }
             .tint(AliveColor.ink)
             .blur(radius: model.isSettingsPresented ? 2 : 0)
-            .accessibilityHidden(model.isSettingsPresented)
-            .allowsHitTesting(!model.isSettingsPresented)
+            .accessibilityHidden(model.isSettingsPresented || model.isQuickEntryPresented)
+            .allowsHitTesting(!model.isSettingsPresented && !model.isQuickEntryPresented)
+            // The quick card sits at the top; the keyboard must not lift the screen behind it.
+            .ignoresSafeArea(.keyboard, edges: .bottom)
+
+            if model.isQuickEntryPresented {
+                Color.black.opacity(0.24)
+                    .ignoresSafeArea()
+                    .onTapGesture { model.closeQuickEntry() }
+                    .accessibilityHidden(true)
+                    .zIndex(1)
+                    .transition(.opacity)
+
+                GeometryReader { proxy in
+                    // The overlay follows the keyboard safe area, so this stays above
+                    // the decimal pad; at accessibility sizes the card scrolls inside it.
+                    let maxHeight = max(0, proxy.size.height - AliveSpace.x2)
+                    VStack(spacing: 0) {
+                        QuickEntryCard(model: model)
+                            // maxHeight also reserves free space; the card itself
+                            // must stay pinned to the top of that space.
+                            .frame(maxHeight: maxHeight, alignment: .top)
+                        Spacer(minLength: 0)
+                    }
+                    .padding(.horizontal, AliveSpace.pageInset)
+                    .padding(.top, AliveSpace.x2)
+                }
+                .zIndex(2)
+                .transition(.asymmetric(insertion: .identity, removal: quickEntryRemoval))
+            }
 
             if model.isSettingsPresented {
                 Color.black.opacity(0.42)
                     .ignoresSafeArea()
                     .onTapGesture { model.closeSettings() }
                     .accessibilityHidden(true)
-                    .zIndex(1)
+                    .zIndex(3)
                     .transition(.opacity)
 
                 SettingsDrawer(model: model)
-                    .zIndex(2)
+                    .zIndex(4)
                     .transition(.move(edge: .leading))
             }
         }
         .animation(reduceMotion ? nil : AliveMotion.enter, value: model.isSettingsPresented)
+        .animation(reduceMotion ? nil : AliveMotion.card, value: model.isQuickEntryPresented)
         .sheet(item: $model.sheet) { sheet in
             switch sheet {
-            case .quickExpense:
-                QuickExpenseSheet(model: model, expense: nil)
             case .editExpense(let id):
                 if let expense = model.currentExpenses.first(where: { $0.id == id }) {
-                    QuickExpenseSheet(model: model, expense: expense)
+                    EditExpenseSheet(model: model, expense: expense)
                 } else {
                     MissingSheetView()
                 }
@@ -128,6 +158,15 @@ struct RootView: View {
                 BalanceSheet(model: model)
             }
         }
+    }
+
+    /// The card unfolds itself on insertion (see `QuickEntryCard`); on the way out
+    /// it shrinks toward the island. Reduce Motion gets a plain fade instead.
+    private var quickEntryRemoval: AnyTransition {
+        if reduceMotion {
+            return .opacity
+        }
+        return .scale(scale: 0.94, anchor: .top).combined(with: .opacity)
     }
 }
 

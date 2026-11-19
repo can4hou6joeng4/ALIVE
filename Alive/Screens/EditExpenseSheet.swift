@@ -1,9 +1,13 @@
 import AliveCore
 import SwiftUI
 
-struct QuickExpenseSheet: View {
+/// Edit form for an existing expense, kept as a bottom sheet.
+///
+/// New expenses use `QuickEntryCard`; this form is the full editor reached from
+/// the history list, where the note stays free text up to 80 characters.
+struct EditExpenseSheet: View {
     let model: AppModel
-    let expense: Expense?
+    let expense: Expense
 
     @Environment(\.dismiss) private var dismiss
     @State private var amountText: String
@@ -11,13 +15,18 @@ struct QuickExpenseSheet: View {
     @State private var isSaving = false
     @State private var errorText: String?
     @State private var saveSucceeded = false
-    @FocusState private var isAmountFocused: Bool
+    @FocusState private var focusedField: Field?
 
-    init(model: AppModel, expense: Expense?) {
+    private enum Field: Hashable {
+        case amount
+        case note
+    }
+
+    init(model: AppModel, expense: Expense) {
         self.model = model
         self.expense = expense
-        _amountText = State(initialValue: expense.map { MoneyFormatter.editText(cents: $0.amountCents) } ?? "")
-        _note = State(initialValue: expense?.note ?? "")
+        _amountText = State(initialValue: MoneyFormatter.editText(cents: expense.amountCents))
+        _note = State(initialValue: expense.note ?? "")
     }
 
     private var amountCents: Int? {
@@ -26,10 +35,6 @@ struct QuickExpenseSheet: View {
 
     private var canSave: Bool {
         (amountCents ?? 0) > 0 && !isSaving
-    }
-
-    private var isEditing: Bool {
-        expense != nil
     }
 
     private var validationMessage: String? {
@@ -51,7 +56,7 @@ struct QuickExpenseSheet: View {
     var body: some View {
         ScrollView {
                 VStack(alignment: .leading, spacing: AliveSpace.x5) {
-                    SheetHeader(title: isEditing ? "编辑支出" : "记一笔") {
+                    SheetHeader(title: "编辑支出") {
                         dismiss()
                     }
 
@@ -70,8 +75,9 @@ struct QuickExpenseSheet: View {
                                     .keyboardType(.decimalPad)
                                     .textFieldStyle(.plain)
                                     .foregroundStyle(AliveColor.ink)
-                                    .focused($isAmountFocused)
+                                    .focused($focusedField, equals: .amount)
                                     .lineLimit(1)
+                                    .minimumScaleFactor(AliveFont.amountFieldMinimumScale)
                                     .accessibilityLabel("支出金额")
                                     .accessibilityHint("最多 9 位整数和 2 位小数，必须大于 0。")
                                     .accessibilitySortPriority(2)
@@ -88,6 +94,7 @@ struct QuickExpenseSheet: View {
                                 .foregroundStyle(AliveColor.ink)
                                 .textFieldStyle(.plain)
                                 .submitLabel(.done)
+                                .focused($focusedField, equals: .note)
                                 .accessibilityLabel("备注，可选")
                                 .accessibilityHint("最多 80 个字符。")
                                 .accessibilitySortPriority(1)
@@ -110,7 +117,7 @@ struct QuickExpenseSheet: View {
                             .font(.system(size: 13))
                             .foregroundStyle(AliveColor.accent)
                             .accessibilityHidden(true)
-                        Text(timestampText)
+                        Text("\(AliveDateText.monthDay(expense.occurredAt)) \(AliveDateText.time(expense.occurredAt)) · 自动记录")
                             .font(AliveFont.sans(12, relativeTo: .caption))
                             .foregroundStyle(AliveColor.inkSecondary)
                         Spacer()
@@ -127,32 +134,30 @@ struct QuickExpenseSheet: View {
         .safeAreaInset(edge: .bottom, spacing: 0) {
             GlassActionBar {
                 GlassActionButton(
-                    title: isEditing ? "保存修改" : "保存",
+                    title: "保存修改",
                     systemImage: "checkmark",
                     isProminent: true,
                     isBusy: isSaving,
-                    accessibilityHint: isEditing ? "保存对这笔支出的修改。" : "保存这笔支出并更新今天还可花。"
+                    accessibilityHint: "保存对这笔支出的修改。"
                 ) {
                     save()
                 }
                 .disabled(!canSave)
+
+                if focusedField != nil {
+                    KeyboardDismissButton {
+                        focusedField = nil
+                    }
+                }
             }
         }
 
         .presentationDetents([.large])
         .presentationDragIndicator(.hidden)
-        .toolbar {
-            ToolbarItemGroup(placement: .keyboard) {
-                Spacer()
-                Button("完成") {
-                    isAmountFocused = false
-                }
-            }
-        }
         .onAppear {
             Task { @MainActor in
                 try? await Task.sleep(for: .milliseconds(350))
-                isAmountFocused = true
+                focusedField = .amount
             }
         }
         .onChange(of: amountText) { _, _ in
@@ -161,30 +166,19 @@ struct QuickExpenseSheet: View {
         .sensoryFeedback(.success, trigger: saveSucceeded)
     }
 
-    private var timestampText: String {
-        guard let expense else {
-            return "\(AliveDateText.monthDay(Date())) \(AliveDateText.time(Date())) · 保存时自动记录"
-        }
-        return "\(AliveDateText.monthDay(expense.occurredAt)) \(AliveDateText.time(expense.occurredAt)) · 自动记录"
-    }
-
     private func save() {
         guard let amountCents, canSave else { return }
-        isAmountFocused = false
+        focusedField = nil
         isSaving = true
         errorText = nil
 
         Task {
             do {
-                if let expense {
-                    try await model.updateExpense(
-                        id: expense.id,
-                        amountCents: amountCents,
-                        note: note
-                    )
-                } else {
-                    try await model.addExpense(amountCents: amountCents, note: note)
-                }
+                try await model.updateExpense(
+                    id: expense.id,
+                    amountCents: amountCents,
+                    note: note
+                )
                 saveSucceeded.toggle()
                 dismiss()
             } catch {

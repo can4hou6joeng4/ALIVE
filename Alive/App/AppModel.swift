@@ -14,14 +14,11 @@ final class AppModel {
     }
 
     enum Sheet: Identifiable, Hashable {
-        case quickExpense
         case editExpense(UUID)
         case balance
 
         var id: String {
             switch self {
-            case .quickExpense:
-                "quick-expense"
             case .editExpense(let id):
                 "edit-\(id)"
             case .balance:
@@ -47,6 +44,7 @@ final class AppModel {
     var path: [Destination] = []
     var alertMessage: String?
     var isSettingsPresented = false
+    var isQuickEntryPresented = false
     let activity = BudgetActivityController()
 
     func bootstrap() async {
@@ -168,7 +166,12 @@ final class AppModel {
         }
         path = []
         isSettingsPresented = false
-        sheet = .quickExpense
+        sheet = nil
+        isQuickEntryPresented = true
+    }
+
+    func closeQuickEntry() {
+        isQuickEntryPresented = false
     }
 
     func openBalance() {
@@ -179,21 +182,25 @@ final class AppModel {
         }
         path = []
         isSettingsPresented = false
+        isQuickEntryPresented = false
         sheet = .balance
     }
 
     func editExpense(id: UUID) {
+        isQuickEntryPresented = false
         sheet = .editExpense(id)
     }
 
     func openHistory() {
         sheet = nil
         isSettingsPresented = false
+        isQuickEntryPresented = false
         path.append(.history)
     }
 
     func openSettings() {
         sheet = nil
+        isQuickEntryPresented = false
         path = []
         isSettingsPresented = true
     }
@@ -217,6 +224,7 @@ final class AppModel {
         case .today:
             sheet = nil
             isSettingsPresented = false
+            isQuickEntryPresented = false
             path = []
         case .quickEntry:
             openQuickExpense()
@@ -271,6 +279,7 @@ final class AppModel {
         currentExpenses = []
         archivedCycles = []
         sheet = nil
+        isQuickEntryPresented = false
         path = []
 
         await activity.end()

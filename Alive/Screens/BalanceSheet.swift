@@ -75,6 +75,7 @@ struct BalanceSheet: View {
                                         .foregroundStyle(AliveColor.ink)
                                         .focused($isFocused)
                                         .lineLimit(1)
+                                        .minimumScaleFactor(AliveFont.amountFieldMinimumScale)
                                         .accessibilityLabel("当前周期剩余总金额")
                                         .accessibilityHint("支持负值；输入负余额时今日额度按 0 计算。")
                                         .accessibilitySortPriority(2)
@@ -135,23 +136,17 @@ struct BalanceSheet: View {
                     save()
                 }
                 .disabled(!canSave)
+
+                if isFocused {
+                    KeyboardDismissButton {
+                        isFocused = false
+                    }
+                }
             }
         }
 
         .presentationDetents([.large])
         .presentationDragIndicator(.hidden)
-        .toolbar {
-            ToolbarItemGroup(placement: .keyboard) {
-                Button("±") {
-                    toggleSign()
-                }
-                .accessibilityLabel("切换余额正负")
-                Spacer()
-                Button("完成") {
-                    isFocused = false
-                }
-            }
-        }
         .onAppear {
             Task { @MainActor in
                 try? await Task.sleep(for: .milliseconds(350))

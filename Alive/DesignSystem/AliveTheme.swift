@@ -98,6 +98,8 @@ enum AliveRadius {
 enum AliveMotion {
     static let quick = Animation.easeOut(duration: 0.18)
     static let value = Animation.easeOut(duration: 0.32)
+    /// The quick-entry card unfolds downward from the island area.
+    static let card = Animation.spring(response: 0.4, dampingFraction: 0.84)
     static let enter = Animation.easeOut(duration: 0.22)
 }
 
@@ -117,6 +119,12 @@ enum AliveFont {
     ) -> Font {
         .system(size: scaled(size, relativeTo: style), weight: weight)
     }
+
+    /// How far an amount input field may shrink its text to keep the whole amount visible.
+    ///
+    /// A single-line field that is too narrow scrolls to the caret and hides the leading
+    /// digits without any sign of it: at the largest text size ¥2,974.00 reads as ¥74.00.
+    static let amountFieldMinimumScale: CGFloat = 0.35
 
     private static func scaled(
         _ size: CGFloat,

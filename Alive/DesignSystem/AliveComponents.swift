@@ -69,6 +69,18 @@ struct BudgetProgress: View {
     }
 }
 
+/// Draws a label exactly as designed, dipping its opacity only while pressed.
+///
+/// `.plain` also dims a disabled label. The action capsules define their own
+/// disabled colors; dimming those again washes the title out and lets content
+/// scrolled behind a floating bar show through the capsule.
+private struct SolidButtonStyle: ButtonStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .opacity(configuration.isPressed ? 0.6 : 1)
+    }
+}
+
 struct PrimaryAction: View {
     let title: String
     var systemImage: String?
@@ -104,7 +116,7 @@ struct PrimaryAction: View {
             }
             .contentShape(Capsule())
         }
-        .buttonStyle(.plain)
+        .buttonStyle(SolidButtonStyle())
         .disabled(isBusy || !isEnabled)
     }
 }
@@ -136,6 +148,15 @@ struct GlassIconButton: View {
     }
 }
 
+extension DynamicTypeSize {
+    /// Largest text size for controls that can neither wrap nor shrink: the floating
+    /// action bar and the system date picker. Content text keeps the full scale.
+    ///
+    /// A compact `DatePicker` is exactly as wide as its date. Above this size the
+    /// date alone is wider than a card and pushes the whole page off both screen edges.
+    static let aliveControlLimit: DynamicTypeSize = .accessibility2
+}
+
 /// Floating glass action area above the home indicator or keyboard.
 struct GlassActionBar<Content: View>: View {
     let content: Content
@@ -159,7 +180,7 @@ struct GlassActionBar<Content: View>: View {
             }
             // Keep the floating controls usable at the largest accessibility sizes;
             // the scrollable content still uses the full Dynamic Type scale.
-            .dynamicTypeSize(...DynamicTypeSize.accessibility2)
+            .dynamicTypeSize(...DynamicTypeSize.aliveControlLimit)
             .padding(.horizontal, AliveSpace.pageInset)
             .padding(.top, AliveSpace.x2)
             .padding(.bottom, AliveSpace.x1)
@@ -233,12 +254,30 @@ struct GlassActionButton: View {
             }
             .contentShape(Capsule())
         }
-        .buttonStyle(.plain)
+        .buttonStyle(SolidButtonStyle())
         .disabled(isBusy || !isEnabled)
         .accessibilityHint(accessibilityHint)
     }
 }
 
+/// The app's only keyboard dismissal control; shown while a field has focus,
+/// in the `GlassActionBar` above the keyboard or next to the field.
+///
+/// It replaces `ToolbarItemGroup(placement: .keyboard)`, which must not be used:
+/// a keyboard toolbar leaves the keyboard safe area wrong until the next key
+/// press — on its own screen and on the next keyboard shown after it — so a
+/// bottom action bar ends up under the keyboard or under the toolbar.
+struct KeyboardDismissButton: View {
+    var action: () -> Void
+
+    var body: some View {
+        GlassIconButton(
+            systemName: "keyboard.chevron.compact.down",
+            accessibilityLabel: "收起键盘",
+            action: action
+        )
+    }
+}
 
 struct GhostButton: View {
     let title: String

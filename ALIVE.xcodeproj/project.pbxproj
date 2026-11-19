@@ -52,7 +52,8 @@
 		D24A677EAA3FCD74A4BBF31C /* Commissioner-Medium.ttf in Resources */ = {isa = PBXBuildFile; fileRef = FA9029C0561AA26C321AF43A /* Commissioner-Medium.ttf */; };
 		D5BF39F68A8EF2058E02B130 /* WelcomeController.swift in Sources */ = {isa = PBXBuildFile; fileRef = BECD9FFE301E842B29EE5D35 /* WelcomeController.swift */; };
 		E0759C25786D7FCE0C832D7A /* AliveFormatting.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4AC6A0B0A1F96B7FF5B170ED /* AliveFormatting.swift */; };
-		F9D859A5E20F135292A6CFAC /* QuickExpenseSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 99547E8BF789AA0CE890A2CF /* QuickExpenseSheet.swift */; };
+		ED601A20CBA47AF8E447A6A0 /* QuickEntryCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6070FB193B0AC93E5C9F0967 /* QuickEntryCard.swift */; };
+		F1D55ECE85360FE8BF3DA8FF /* EditExpenseSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2DFC7DA3F36C250A4B01C7E5 /* EditExpenseSheet.swift */; };
 		FD3971E6DEC5C9B560D26171 /* BudgetResolverTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 14F3965BD4C673C0F3EB8E75 /* BudgetResolverTests.swift */; };
 /* End PBXBuildFile section */
 
@@ -116,11 +117,13 @@
 		29523033BA6EDBD02CF48AC0 /* BudgetLiveActivity.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BudgetLiveActivity.swift; sourceTree = "<group>"; };
 		2D316D0AA2832D4B50208CDF /* MoneyFormatter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MoneyFormatter.swift; sourceTree = "<group>"; };
 		2D6FD1F9724BADA5FD9DB8D4 /* DomainSupportTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DomainSupportTests.swift; sourceTree = "<group>"; };
+		2DFC7DA3F36C250A4B01C7E5 /* EditExpenseSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EditExpenseSheet.swift; sourceTree = "<group>"; };
 		493DE04FA0922BB7A000EC58 /* LiveActivityWindow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LiveActivityWindow.swift; sourceTree = "<group>"; };
 		4AC6A0B0A1F96B7FF5B170ED /* AliveFormatting.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AliveFormatting.swift; sourceTree = "<group>"; };
 		4FB46ECE6F98FD8AAF03BE97 /* Commissioner-Bold.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "Commissioner-Bold.ttf"; sourceTree = "<group>"; };
 		4FBD010BB060DC9A0F3A78B3 /* TodayView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TodayView.swift; sourceTree = "<group>"; };
 		52F37BCDE720C380B7805280 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
+		6070FB193B0AC93E5C9F0967 /* QuickEntryCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QuickEntryCard.swift; sourceTree = "<group>"; };
 		626A58B3DE833759224BA4CF /* BudgetCalendar.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BudgetCalendar.swift; sourceTree = "<group>"; };
 		7B5AD1A6FFEF74B8EE2BDCBB /* BudgetActivityAttributes.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BudgetActivityAttributes.swift; sourceTree = "<group>"; };
 		8355753AD2EA3603A2229BF2 /* Commissioner-Regular.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "Commissioner-Regular.ttf"; sourceTree = "<group>"; };
@@ -128,7 +131,6 @@
 		8B52D8DB0B6652537DEC4F3E /* BudgetRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BudgetRepository.swift; sourceTree = "<group>"; };
 		8E915D47C6DA92308C7B98E4 /* AliveTests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = AliveTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		96F9C123B6D688EEFB85D54E /* SwiftDataBudgetRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SwiftDataBudgetRepository.swift; sourceTree = "<group>"; };
-		99547E8BF789AA0CE890A2CF /* QuickExpenseSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QuickExpenseSheet.swift; sourceTree = "<group>"; };
 		A60AE0965865E9F34E3DC390 /* Gloock-Regular.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "Gloock-Regular.ttf"; sourceTree = "<group>"; };
 		B2D0B9993E0CC90DA4C1A500 /* Alive.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = Alive.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		BA959ED42AE075AED6F7EB8A /* SetupView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SetupView.swift; sourceTree = "<group>"; };
@@ -216,8 +218,9 @@
 			isa = PBXGroup;
 			children = (
 				FCE9035707853A32B241000C /* BalanceSheet.swift */,
+				2DFC7DA3F36C250A4B01C7E5 /* EditExpenseSheet.swift */,
 				C0AD790EC09B3A52218C7063 /* HistoryView.swift */,
-				99547E8BF789AA0CE890A2CF /* QuickExpenseSheet.swift */,
+				6070FB193B0AC93E5C9F0967 /* QuickEntryCard.swift */,
 				52F37BCDE720C380B7805280 /* SettingsView.swift */,
 				BA959ED42AE075AED6F7EB8A /* SetupView.swift */,
 				4FBD010BB060DC9A0F3A78B3 /* TodayView.swift */,
@@ -532,8 +535,9 @@
 				7A22E5B18D188FDE43FCB3F3 /* AppModel.swift in Sources */,
 				AD49D043DBCF4263AC7A5089 /* BalanceSheet.swift in Sources */,
 				23BFCD6187E6603ECD1311B3 /* BudgetActivityController.swift in Sources */,
+				F1D55ECE85360FE8BF3DA8FF /* EditExpenseSheet.swift in Sources */,
 				1523D26999F7B81954840BCA /* HistoryView.swift in Sources */,
-				F9D859A5E20F135292A6CFAC /* QuickExpenseSheet.swift in Sources */,
+				ED601A20CBA47AF8E447A6A0 /* QuickEntryCard.swift in Sources */,
 				1D1C8D381CC08DEF6874CB4C /* RootView.swift in Sources */,
 				CBB18980FBE2F8DE3A4EB5B8 /* SettingsView.swift in Sources */,
 				549A5DFA74F5C2660E25009B /* SetupView.swift in Sources */,

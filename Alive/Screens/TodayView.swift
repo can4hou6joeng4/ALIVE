@@ -133,7 +133,7 @@ struct TodayView: View {
                     if snapshot.phase == .pending {
                         infoRow("预计每日额度", MoneyFormatter.currency(cents: snapshot.todayBudgetCents))
                         infoRow("起始余额", MoneyFormatter.currency(cents: snapshot.currentBalanceCents))
-                        infoRow("距开始", "\(snapshot.daysRemaining) 天")
+                        infoRow("距开始", "\(snapshot.daysUntilStart) 天")
                     } else {
                         if dynamicTypeSize.isAccessibilitySize {
                             VStack(alignment: .leading, spacing: AliveSpace.x1) {
