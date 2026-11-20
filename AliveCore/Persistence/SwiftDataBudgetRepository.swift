@@ -1,9 +1,11 @@
 import Foundation
 import SwiftData
+import Synchronization
 
 public actor SwiftDataBudgetRepository: BudgetRepository {
+    private static let defaultRepositories = Mutex<[String: SwiftDataBudgetRepository]>([:])
     private let modelContainer: ModelContainer
-    private let snapshotStore: BudgetSnapshotStore
+    private let storeDirectoryURL: URL?
     private let resolver: BudgetResolver
     private var modelContext: ModelContext {
         ModelContext(modelContainer)
@@ -11,22 +13,36 @@ public actor SwiftDataBudgetRepository: BudgetRepository {
 
     public init(
         modelContainer: ModelContainer,
-        snapshotStore: BudgetSnapshotStore,
+        storeDirectoryURL: URL? = nil,
         calendar: BudgetCalendar = BudgetCalendar()
     ) {
         self.modelContainer = modelContainer
-        self.snapshotStore = snapshotStore
+        self.storeDirectoryURL = storeDirectoryURL
         self.resolver = BudgetResolver(calendar: calendar)
     }
 
     public static func makeDefault(calendar: BudgetCalendar = BudgetCalendar()) throws -> SwiftDataBudgetRepository {
-        guard let groupURL = FileManager.default.containerURL(
-            forSecurityApplicationGroupIdentifier: BudgetSnapshotStore.appGroupID
-        ) else {
-            throw BudgetError.storageUnavailable
+        try defaultRepositories.withLock { repositories in
+            let key = calendar.timeZone.identifier
+            if let repository = repositories[key] {
+                return repository
+            }
+            let repository = try makeDefaultStore(calendar: calendar)
+            repositories[key] = repository
+            return repository
         }
+    }
 
-        let storeDirectory = groupURL.appending(path: "Database", directoryHint: .isDirectory)
+    private static func makeDefaultStore(calendar: BudgetCalendar) throws -> SwiftDataBudgetRepository {
+        let applicationSupport = try FileManager.default.url(
+            for: .applicationSupportDirectory,
+            in: .userDomainMask,
+            appropriateFor: nil,
+            create: true
+        )
+        let storeDirectory = applicationSupport
+            .appending(path: "ALIVE", directoryHint: .isDirectory)
+            .appending(path: "Database", directoryHint: .isDirectory)
         try FileManager.default.createDirectory(
             at: storeDirectory,
             withIntermediateDirectories: true,
@@ -46,10 +62,9 @@ public actor SwiftDataBudgetRepository: BudgetRepository {
             migrationPlan: AliveMigrationPlan.self,
             configurations: [configuration]
         )
-        let snapshotStore = try BudgetSnapshotStore.appGroup()
         let repository = SwiftDataBudgetRepository(
             modelContainer: container,
-            snapshotStore: snapshotStore,
+            storeDirectoryURL: storeDirectory,
             calendar: calendar
         )
         Task {
@@ -68,31 +83,45 @@ public actor SwiftDataBudgetRepository: BudgetRepository {
         let resolution = try resolver.initialResolution(setup: setup, now: now)
         guard let snapshot = resolution.snapshot else { throw BudgetError.noCycle }
         try persist(resolution.state)
-        try writeSnapshot(snapshot)
         return snapshot
     }
 
     public func snapshot(at date: Date) async throws -> BudgetSnapshot {
         let resolution = try resolveAndPersist(at: date)
         guard let snapshot = resolution.snapshot else {
-            snapshotStore.clear()
             throw BudgetError.noCycle
         }
-        try writeSnapshot(snapshot)
         return snapshot
     }
 
     public func addExpense(amountCents: Int, note: String?, at date: Date) async throws -> BudgetSnapshot {
-        let state = try resolveAndPersist(at: date).state
+        try await addExpense(
+            id: UUID(),
+            amountCents: amountCents,
+            note: note,
+            expectedCycleID: nil,
+            at: date
+        )
+    }
+
+    public func addExpense(
+        id: UUID,
+        amountCents: Int,
+        note: String?,
+        expectedCycleID: UUID?,
+        at date: Date
+    ) async throws -> BudgetSnapshot {
+        let state = try loadState()
         let resolution = try resolver.addExpense(
             to: state,
             amountCents: amountCents,
             note: note,
-            at: date
+            at: date,
+            id: id,
+            expectedCycleID: expectedCycleID
         )
         try persist(resolution.state)
         guard let snapshot = resolution.snapshot else { throw BudgetError.noCycle }
-        try writeSnapshot(snapshot)
         return snapshot
     }
 
@@ -112,7 +141,6 @@ public actor SwiftDataBudgetRepository: BudgetRepository {
         )
         try persist(resolution.state)
         guard let snapshot = resolution.snapshot else { throw BudgetError.noCycle }
-        try writeSnapshot(snapshot)
         return snapshot
     }
 
@@ -121,7 +149,6 @@ public actor SwiftDataBudgetRepository: BudgetRepository {
         let resolution = try resolver.deleteExpense(in: state, id: id, now: now)
         try persist(resolution.state)
         guard let snapshot = resolution.snapshot else { throw BudgetError.noCycle }
-        try writeSnapshot(snapshot)
         return snapshot
     }
 
@@ -130,7 +157,6 @@ public actor SwiftDataBudgetRepository: BudgetRepository {
         let resolution = try resolver.overrideCurrentBalance(in: state, cents: cents, at: date)
         try persist(resolution.state)
         guard let snapshot = resolution.snapshot else { throw BudgetError.noCycle }
-        try writeSnapshot(snapshot)
         return snapshot
     }
 
@@ -139,7 +165,6 @@ public actor SwiftDataBudgetRepository: BudgetRepository {
         let resolution = try resolver.updatePendingCycle(in: state, setup: setup, now: now)
         try persist(resolution.state)
         guard let snapshot = resolution.snapshot else { throw BudgetError.noCycle }
-        try writeSnapshot(snapshot)
         return snapshot
     }
 
@@ -258,27 +283,9 @@ public actor SwiftDataBudgetRepository: BudgetRepository {
         protectStoreFiles()
     }
 
-    private func writeSnapshot(_ snapshot: BudgetSnapshot) throws {
-        let document = BudgetSnapshotDocument(
-            snapshot: snapshot,
-            nextRefresh: resolver.calendar.nextMidnight(after: snapshot.generatedAt)
-        )
-        do {
-            try snapshotStore.write(document)
-        } catch {
-            throw BudgetError.snapshotUnavailable
-        }
-    }
-
     private func protectStoreFiles() {
-        guard let groupURL = FileManager.default.containerURL(
-            forSecurityApplicationGroupIdentifier: BudgetSnapshotStore.appGroupID
-        ) else {
-            return
-        }
-        let storeURL = groupURL
-            .appending(path: "Database", directoryHint: .isDirectory)
-            .appending(path: "Alive.store")
+        guard let storeDirectoryURL else { return }
+        let storeURL = storeDirectoryURL.appending(path: "Alive.store")
         for suffix in ["", "-wal", "-shm"] {
             let url = URL(fileURLWithPath: storeURL.path + suffix)
             guard FileManager.default.fileExists(atPath: url.path) else { continue }

@@ -1,9 +1,14 @@
 import Foundation
 
 public struct BudgetCalendar: Sendable {
+    /// ALIVE 固定使用北京时间（Asia/Shanghai）作为预算日界线。
+    /// 这避免跨时区时发薪日与“今天”的本地午夜漂移；产品决策见 PRD 核心公式。
+    public static let fixedTimeZone: TimeZone = TimeZone(identifier: "Asia/Shanghai")
+        ?? TimeZone(secondsFromGMT: 8 * 60 * 60)!
+
     public var calendar: Calendar
 
-    public init(timeZone: TimeZone = .autoupdatingCurrent, locale: Locale = Locale(identifier: "zh_CN")) {
+    public init(timeZone: TimeZone = BudgetCalendar.fixedTimeZone, locale: Locale = Locale(identifier: "zh_CN")) {
         var calendar = Calendar(identifier: .gregorian)
         calendar.timeZone = timeZone
         calendar.locale = locale

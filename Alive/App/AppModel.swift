@@ -2,26 +2,6 @@ import AliveCore
 import Foundation
 import Observation
 import SwiftUI
-import WidgetKit
-
-enum ThemePreference: String, CaseIterable, Identifiable {
-    case light
-    case dark
-    case system
-
-    var id: String { rawValue }
-
-    var title: String {
-        switch self {
-        case .light:
-            "浅色"
-        case .dark:
-            "深色"
-        case .system:
-            "跟随系统"
-        }
-    }
-}
 
 @MainActor
 @Observable
@@ -34,14 +14,11 @@ final class AppModel {
     }
 
     enum Sheet: Identifiable, Hashable {
-        case quickExpense
         case editExpense(UUID)
         case balance
 
         var id: String {
             switch self {
-            case .quickExpense:
-                "quick-expense"
             case .editExpense(let id):
                 "edit-\(id)"
             case .balance:
@@ -52,10 +29,13 @@ final class AppModel {
 
     enum Destination: Hashable {
         case history
-        case settings
     }
 
-    private let defaults: UserDefaults
+    enum QuickEntryPresentation: Equatable {
+        case standard
+        case liveActivity
+    }
+
     private let calendar = BudgetCalendar()
     private var repository: (any BudgetRepository)?
     private var didBootstrap = false
@@ -68,28 +48,10 @@ final class AppModel {
     var sheet: Sheet?
     var path: [Destination] = []
     var alertMessage: String?
-    var theme: ThemePreference {
-        didSet {
-            defaults.set(theme.rawValue, forKey: "appearancePreference")
-        }
-    }
+    var isSettingsPresented = false
+    var isQuickEntryPresented = false
+    var quickEntryPresentation: QuickEntryPresentation = .standard
     let activity = BudgetActivityController()
-
-    init(defaults: UserDefaults = .standard) {
-        self.defaults = defaults
-        theme = ThemePreference(rawValue: defaults.string(forKey: "appearancePreference") ?? "") ?? .light
-    }
-
-    var preferredColorScheme: ColorScheme? {
-        switch theme {
-        case .light:
-            .light
-        case .dark:
-            .dark
-        case .system:
-            nil
-        }
-    }
 
     func bootstrap() async {
         guard !didBootstrap else { return }
@@ -101,14 +63,12 @@ final class AppModel {
             self.repository = repository
 
             guard try await repository.hasCycle() else {
-                loadState = .setup
-                activity.refreshStatus()
+                await enterSetupWithoutCycle()
                 return
             }
 
             let snapshot = try await repository.snapshot(at: Date())
             await commit(snapshot, openQueuedRoute: true, attachActivity: true)
-            applyPendingIntentRouteIfNeeded()
         } catch {
             loadState = .failed(error.localizedDescription)
         }
@@ -148,10 +108,8 @@ final class AppModel {
             let snapshot = try await repository.snapshot(at: Date())
             await commit(snapshot)
             await activity.attach(to: snapshot)
-            applyPendingIntentRouteIfNeeded()
         } catch BudgetError.noCycle {
-            snapshot = nil
-            loadState = .setup
+            await enterSetupWithoutCycle()
         } catch {
             alertMessage = error.localizedDescription
         }
@@ -206,38 +164,56 @@ final class AppModel {
         }
     }
 
-    func openQuickExpense() {
+    func openQuickExpense(presentation: QuickEntryPresentation = .standard) {
         guard let snapshot else { return }
         guard snapshot.phase != .pending else {
             alertMessage = BudgetError.cycleNotActive.localizedDescription
             return
         }
         path = []
-        sheet = .quickExpense
+        isSettingsPresented = false
+        sheet = nil
+        quickEntryPresentation = presentation
+        isQuickEntryPresented = true
+    }
+
+    func closeQuickEntry() {
+        isQuickEntryPresented = false
     }
 
     func openBalance() {
         guard let snapshot else { return }
         guard snapshot.phase != .pending else {
-            path = [.settings]
+            openSettings()
             return
         }
         path = []
+        isSettingsPresented = false
+        isQuickEntryPresented = false
         sheet = .balance
     }
 
     func editExpense(id: UUID) {
+        isQuickEntryPresented = false
         sheet = .editExpense(id)
     }
 
     func openHistory() {
         sheet = nil
+        isSettingsPresented = false
+        isQuickEntryPresented = false
         path.append(.history)
     }
 
     func openSettings() {
         sheet = nil
-        path.append(.settings)
+        isQuickEntryPresented = false
+        path = []
+        isSettingsPresented = true
+    }
+
+    func closeSettings() {
+        isSettingsPresented = false
     }
 
     func handle(url: URL) {
@@ -254,9 +230,13 @@ final class AppModel {
         switch route {
         case .today:
             sheet = nil
+            isSettingsPresented = false
+            isQuickEntryPresented = false
             path = []
         case .quickEntry:
             openQuickExpense()
+        case .liveEntry:
+            openQuickExpense(presentation: .liveActivity)
         case .balance:
             openBalance()
         case .history:
@@ -268,11 +248,6 @@ final class AppModel {
         guard let route = queuedRoute else { return }
         queuedRoute = nil
         apply(route)
-    }
-
-    private func applyPendingIntentRouteIfNeeded() {
-        guard let route = PendingAppRouteStore.consume() else { return }
-        handle(url: route.url)
     }
 
     private func commit(
@@ -297,7 +272,6 @@ final class AppModel {
         }
         loadState = .ready
 
-        WidgetCenter.shared.reloadAllTimelines()
         if attachActivity {
             await activity.attach(to: snapshot)
         } else {
@@ -307,6 +281,19 @@ final class AppModel {
         if let derivedDataError {
             alertMessage = derivedDataError
         }
+    }
+
+    private func enterSetupWithoutCycle() async {
+        snapshot = nil
+        currentExpenses = []
+        archivedCycles = []
+        sheet = nil
+        isQuickEntryPresented = false
+        path = []
+
+        await activity.end()
+
+        loadState = .setup
     }
 
     private func requireRepository() throws -> any BudgetRepository {

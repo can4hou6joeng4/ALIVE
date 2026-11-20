@@ -31,6 +31,24 @@ public enum MoneyFormatter {
         return formatter.string(from: NSDecimalNumber(decimal: yuan)) ?? "0.00"
     }
 
+    /// Compact amount for narrow Live Activity surfaces. Keeps Decimal end-to-end.
+    public static func compactYuan(cents: Decimal) -> String {
+        let yuan = cents / Decimal(100)
+        let formatter = NumberFormatter()
+        formatter.locale = Locale(identifier: "zh_CN")
+        formatter.numberStyle = .decimal
+        formatter.roundingMode = .halfUp
+        formatter.usesGroupingSeparator = true
+        if yuan >= 1_000 {
+            formatter.minimumFractionDigits = 0
+            formatter.maximumFractionDigits = 0
+        } else {
+            formatter.minimumFractionDigits = 0
+            formatter.maximumFractionDigits = 1
+        }
+        return formatter.string(from: NSDecimalNumber(decimal: yuan)) ?? "0"
+    }
+
     public static func spoken(cents: Decimal) -> String {
         "\(yuan(cents: cents)) 元"
     }

@@ -167,6 +167,121 @@ public struct BudgetSnapshot: Identifiable, Codable, Hashable, Sendable {
         self.needsBalanceReview = needsBalanceReview
         self.generatedAt = generatedAt
     }
+
+    public var displayState: BudgetDisplayState {
+        BudgetDisplayState(snapshot: self)
+    }
+
+    /// Calendar days from the day this snapshot was generated until the cycle
+    /// starts; 0 once it has started.
+    ///
+    /// This is the pending countdown. `daysRemaining` is not: in the pending
+    /// phase it holds the projected length of the cycle, the divisor of the
+    /// projected daily budget.
+    public var daysUntilStart: Int {
+        max(0, BudgetCalendar().calendarDays(from: generatedAt, to: startDate))
+    }
+}
+
+/// Presentation-only state shared by the App and Live Activity.
+///
+/// The domain keeps `BudgetPhase` limited to pending/active/overspent so the
+/// persisted calculations stay stable. This type adds the missing zero and
+/// negative-balance distinctions required by PRD F3 without changing the
+/// formula or the persisted snapshot.
+public enum BudgetDisplayState: Equatable, Sendable {
+    case pending(budgetCents: Decimal)
+    case available(amountCents: Decimal)
+    case overspent(overageCents: Decimal)
+    case negativeBalance(balanceCents: Decimal, overageCents: Decimal?)
+    case zeroBalance
+
+    public init(snapshot: BudgetSnapshot) {
+        self.init(
+            phase: snapshot.phase,
+            todayBudgetCents: snapshot.todayBudgetCents,
+            todayAvailableCents: snapshot.todayAvailableCents,
+            currentBalanceCents: snapshot.currentBalanceCents
+        )
+    }
+
+    public init(
+        phase: BudgetPhase,
+        todayBudgetCents: Decimal,
+        todayAvailableCents: Decimal,
+        currentBalanceCents: Int
+    ) {
+        if phase == .pending {
+            self = .pending(budgetCents: todayBudgetCents)
+            return
+        }
+        if currentBalanceCents < 0 {
+            self = .negativeBalance(
+                balanceCents: Decimal(-currentBalanceCents),
+                overageCents: todayAvailableCents < 0 ? -todayAvailableCents : nil
+            )
+            return
+        }
+        if todayAvailableCents < 0 {
+            self = .overspent(overageCents: -todayAvailableCents)
+            return
+        }
+        if currentBalanceCents == 0 {
+            self = .zeroBalance
+            return
+        }
+        self = .available(amountCents: max(0, todayAvailableCents))
+    }
+
+    /// The amount shown as the large number. It is always a magnitude.
+    public var amountCents: Decimal {
+        switch self {
+        case .pending(let budget):
+            budget
+        case .available(let amount):
+            amount
+        case .overspent(let overage):
+            overage
+        case .negativeBalance(let balance, _):
+            balance
+        case .zeroBalance:
+            0
+        }
+    }
+
+    public var label: String {
+        switch self {
+        case .pending:
+            "预计每日额度"
+        case .available:
+            "今天还可花"
+        case .overspent:
+            "今天已超出"
+        case .negativeBalance:
+            "余额已为负"
+        case .zeroBalance:
+            "今日额度不可用"
+        }
+    }
+
+    public var isNegativeBalance: Bool {
+        if case .negativeBalance = self { return true }
+        return false
+    }
+
+    public var isZeroBalance: Bool {
+        if case .zeroBalance = self { return true }
+        return false
+    }
+
+    public var isOverspent: Bool {
+        switch self {
+        case .overspent, .negativeBalance:
+            true
+        case .pending, .available, .zeroBalance:
+            false
+        }
+    }
 }
 
 public struct BudgetState: Codable, Equatable, Sendable {
@@ -248,6 +363,7 @@ public enum BudgetError: Error, Equatable, LocalizedError, Sendable {
     case archivedCycleReadOnly
     case expenseNotFound
     case expenseOutsideCurrentCycle
+    case expenseAlreadyRecorded
     case storageUnavailable
     case snapshotUnavailable
 
@@ -273,6 +389,8 @@ public enum BudgetError: Error, Equatable, LocalizedError, Sendable {
             "这笔支出已不存在。"
         case .expenseOutsideCurrentCycle:
             "只能修改当前周期的支出。"
+        case .expenseAlreadyRecorded:
+            "这笔支出已经记录，请返回 App 查看。"
         case .storageUnavailable:
             "本地数据暂时不可用，请稍后重试。"
         case .snapshotUnavailable:

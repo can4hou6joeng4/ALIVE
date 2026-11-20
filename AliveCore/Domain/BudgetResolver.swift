@@ -35,6 +35,8 @@ public struct BudgetResolver: Sendable {
         var current = state.cycles[state.cycles.count - 1]
         var currentIndex = state.cycles.count - 1
 
+        // Day boundaries use `BudgetCalendar.fixedTimeZone` (Asia/Shanghai),
+        // so cycle rollover does not drift when the device time zone changes.
         while now >= current.paydayDate {
             let endingBalance = state.currentBalanceCents(cycleID: current.id)
             let closedDate = current.paydayDate
@@ -129,7 +131,9 @@ public struct BudgetResolver: Sendable {
         to state: BudgetState,
         amountCents: Int,
         note: String?,
-        at date: Date
+        at date: Date,
+        id: UUID = UUID(),
+        expectedCycleID: UUID? = nil
     ) throws -> BudgetResolution {
         guard amountCents > 0 else { throw BudgetError.invalidAmount }
         let cleanedNote = try validatedNote(note)
@@ -140,10 +144,24 @@ public struct BudgetResolver: Sendable {
         guard date >= snapshot.startDate, date < snapshot.payday else {
             throw BudgetError.cycleNotActive
         }
+        guard expectedCycleID == nil || expectedCycleID == snapshot.cycleID else {
+            throw BudgetError.expenseOutsideCurrentCycle
+        }
+
+        if let existing = initial.state.expenses.first(where: { $0.id == id }) {
+            guard existing.cycleID == snapshot.cycleID,
+                  existing.amountCents == amountCents,
+                  existing.note == cleanedNote
+            else {
+                throw BudgetError.expenseAlreadyRecorded
+            }
+            return initial
+        }
 
         var updated = initial.state
         updated.expenses.append(
             Expense(
+                id: id,
                 cycleID: snapshot.cycleID,
                 amountCents: amountCents,
                 occurredAt: date,
@@ -174,9 +192,18 @@ public struct BudgetResolver: Sendable {
         }
 
         var updated = initial.state
+        let wasHistorical = !calendar.isSameDay(initial.state.expenses[index].occurredAt, now)
         updated.expenses[index].amountCents = amountCents
         updated.expenses[index].note = cleanedNote
         updated.expenses[index].updatedAt = now
+
+        // PRD F2: editing a current-cycle expense immediately recalculates today's
+        // available amount and balance. For a past-day expense the day's spend total
+        // does not change, so the fixed daily anchor must be rebuilt from the new
+        // balance; otherwise today's available would stay stale.
+        if wasHistorical {
+            resetTodayAnchor(in: &updated, cycleID: snapshot.cycleID, now: now)
+        }
         return resolve(updated, now: now)
     }
 
@@ -196,7 +223,24 @@ public struct BudgetResolver: Sendable {
 
         var updated = initial.state
         updated.expenses.removeAll { $0.id == id }
+
+        // PRD F2: deleting a past-day expense changes the balance but not today's
+        // spend total, so rebuild today's anchor to keep today's available in sync.
+        if !calendar.isSameDay(expense.occurredAt, now) {
+            resetTodayAnchor(in: &updated, cycleID: snapshot.cycleID, now: now)
+        }
         return resolve(updated, now: now)
+    }
+
+    /// Drops today's fixed budget anchor for the current cycle so `resolve` rebuilds
+    /// it from the latest balance. Used only for corrections that change the balance
+    /// without changing today's spend total (PRD F2); ordinary spending keeps the
+    /// anchor fixed (BR-03).
+    private func resetTodayAnchor(in state: inout BudgetState, cycleID: UUID, now: Date) {
+        let today = calendar.startOfDay(now)
+        state.anchors.removeAll {
+            $0.cycleID == cycleID && calendar.isSameDay($0.dayStart, today)
+        }
     }
 
     public func overrideCurrentBalance(
@@ -228,6 +272,10 @@ public struct BudgetResolver: Sendable {
             let resetAvailable = Decimal(max(0, cents)) / Decimal(snapshot.daysRemaining)
             updated.anchors[anchorIndex].budgetCents = resetAvailable + Decimal(snapshot.todaySpentCents)
             updated.anchors[anchorIndex].basisBalanceCents = cents
+        }
+
+        if let cycleIndex = updated.cycles.firstIndex(where: { $0.id == snapshot.cycleID }) {
+            updated.cycles[cycleIndex].needsBalanceReview = false
         }
 
         return resolve(updated, now: date)

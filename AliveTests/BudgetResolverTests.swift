@@ -136,6 +136,77 @@ struct BudgetResolverTests {
         #expect(finalSnapshot.currentBalanceCents == 49_000)
     }
 
+    @Test("手动调整余额清除结转待确认标记并重设当日锚点")
+    func balanceOverrideClearsReviewFlag() throws {
+        let start = date(2026, 11, 17, hour: 8)
+        let initial = try resolver.initialResolution(
+            setup: CycleSetup(
+                initialBalanceCents: 100_000,
+                startDate: start,
+                nextPayday: date(2026, 11, 27)
+            ),
+            now: start
+        )
+        let spent = try resolver.addExpense(
+            to: initial.state,
+            amountCents: 4_000,
+            note: nil,
+            at: start
+        )
+        let rolled = try resolver.resolve(
+            spent.state,
+            now: date(2026, 11, 27, hour: 0, minute: 1)
+        )
+        let rolledSnapshot = try #require(rolled.snapshot)
+        #expect(rolledSnapshot.needsBalanceReview)
+        #expect(rolledSnapshot.currentBalanceCents == 96_000)
+
+        let sameDay = try resolver.addExpense(
+            to: rolled.state,
+            amountCents: 1_000,
+            note: nil,
+            at: date(2026, 11, 27, hour: 9)
+        )
+        let beforeOverride = try #require(sameDay.snapshot)
+        #expect(beforeOverride.needsBalanceReview)
+        #expect(beforeOverride.todaySpentCents == 1_000)
+
+        let overridden = try resolver.overrideCurrentBalance(
+            in: sameDay.state,
+            cents: 60_000,
+            at: date(2026, 11, 27, hour: 10)
+        )
+        let snapshot = try #require(overridden.snapshot)
+
+        #expect(!snapshot.needsBalanceReview)
+        #expect(snapshot.currentBalanceCents == 60_000)
+        #expect(snapshot.todaySpentCents == 1_000)
+        #expect(snapshot.todayBudgetCents == 3_000)
+        #expect(snapshot.todayAvailableCents == 2_000)
+        #expect(snapshot.daysRemaining == 30)
+
+        #expect(overridden.state.adjustments.count == 1)
+        let adjustment = try #require(overridden.state.adjustments.first)
+        #expect(adjustment.cycleID == rolledSnapshot.cycleID)
+        #expect(adjustment.deltaCents == -35_000)
+        #expect(adjustment.reason == "manualOverride")
+
+        let todayAnchor = try #require(overridden.state.anchors.last {
+            $0.cycleID == rolledSnapshot.cycleID
+                && calendar.isSameDay($0.dayStart, date(2026, 11, 27, hour: 10))
+        })
+        #expect(todayAnchor.budgetCents == 3_000)
+        #expect(todayAnchor.basisBalanceCents == 60_000)
+
+        let currentCycle = try #require(overridden.state.cycles.last)
+        #expect(currentCycle.id == rolledSnapshot.cycleID)
+        #expect(!currentCycle.needsBalanceReview)
+
+        let archivedCycle = try #require(overridden.state.cycles.first { $0.closedAt != nil })
+        #expect(!archivedCycle.needsBalanceReview)
+        #expect(archivedCycle.closedAt == calendar.startOfDay(date(2026, 11, 27)))
+    }
+
     @Test("未来起始日进入待开始并拒绝支出")
     func pendingCycle() throws {
         let now = date(2026, 11, 17, hour: 9)
@@ -155,6 +226,33 @@ struct BudgetResolverTests {
         #expect(throws: BudgetError.cycleNotActive) {
             try resolver.addExpense(to: resolution.state, amountCents: 100, note: nil, at: now)
         }
+    }
+
+    @Test("待开始倒计时是距起始日的日历日数，不是周期天数")
+    func pendingCountdown() throws {
+        let resolution = try resolver.initialResolution(
+            setup: CycleSetup(
+                initialBalanceCents: 120_000,
+                startDate: date(2026, 11, 20),
+                nextPayday: date(2026, 12, 20)
+            ),
+            now: date(2026, 11, 17, hour: 9)
+        )
+        let threeDaysBefore = try #require(resolution.snapshot)
+        #expect(threeDaysBefore.daysRemaining == 30)
+        #expect(threeDaysBefore.daysUntilStart == 3)
+
+        let nightBefore = try #require(
+            resolver.resolve(resolution.state, now: date(2026, 11, 19, hour: 23, minute: 59)).snapshot
+        )
+        #expect(nightBefore.phase == .pending)
+        #expect(nightBefore.daysUntilStart == 1)
+
+        let started = try #require(
+            resolver.resolve(resolution.state, now: date(2026, 11, 20)).snapshot
+        )
+        #expect(started.phase == .active)
+        #expect(started.daysUntilStart == 0)
     }
 
     @Test("到达未来起始日后自动进入进行中")
@@ -279,6 +377,58 @@ struct BudgetResolverTests {
         #expect(deleted.state.expenses.isEmpty)
     }
 
+    @Test("编辑历史支出按新余额重算今日预算与可用")
+    func updateHistoricalExpenseRollsBudget() throws {
+        let start = date(2026, 11, 17, hour: 9)
+        let initial = try resolver.initialResolution(
+            setup: CycleSetup(initialBalanceCents: 100_000, startDate: start, nextPayday: date(2026, 11, 27)),
+            now: start
+        )
+        let added = try resolver.addExpense(to: initial.state, amountCents: 4_000, note: nil, at: start)
+        let expense = try #require(added.state.expenses.first)
+
+        // 次日先固定 96,000 / 9 天的当日锚点。
+        let nextDay = date(2026, 11, 18, hour: 9)
+        let rolled = resolver.resolve(added.state, now: nextDay)
+        let rolledSnapshot = try #require(rolled.snapshot)
+        #expect(rolledSnapshot.todayBudgetCents == Decimal(96_000) / Decimal(9))
+
+        let updated = try resolver.updateExpense(
+            in: rolled.state,
+            id: expense.id,
+            amountCents: 6_000,
+            note: nil,
+            now: nextDay
+        )
+        let snapshot = try #require(updated.snapshot)
+
+        #expect(snapshot.currentBalanceCents == 94_000)
+        #expect(snapshot.todaySpentCents == 0)
+        #expect(snapshot.todayBudgetCents == Decimal(94_000) / Decimal(9))
+        #expect(snapshot.todayAvailableCents == snapshot.todayBudgetCents)
+    }
+
+    @Test("删除历史支出按新余额重算今日预算与可用")
+    func deleteHistoricalExpenseRollsBudget() throws {
+        let start = date(2026, 11, 17, hour: 9)
+        let initial = try resolver.initialResolution(
+            setup: CycleSetup(initialBalanceCents: 100_000, startDate: start, nextPayday: date(2026, 11, 27)),
+            now: start
+        )
+        let added = try resolver.addExpense(to: initial.state, amountCents: 4_000, note: nil, at: start)
+        let expense = try #require(added.state.expenses.first)
+
+        let nextDay = date(2026, 11, 18, hour: 9)
+        let rolled = resolver.resolve(added.state, now: nextDay)
+        let deleted = try resolver.deleteExpense(in: rolled.state, id: expense.id, now: nextDay)
+        let snapshot = try #require(deleted.snapshot)
+
+        #expect(snapshot.currentBalanceCents == 100_000)
+        #expect(snapshot.todaySpentCents == 0)
+        #expect(snapshot.todayBudgetCents == Decimal(100_000) / Decimal(9))
+        #expect(snapshot.todayAvailableCents == snapshot.todayBudgetCents)
+    }
+
     @Test("归档周期支出不可修改")
     func archivedExpenseIsReadOnly() throws {
         let start = date(2026, 11, 17, hour: 8)
@@ -301,8 +451,8 @@ struct BudgetResolverTests {
         }
     }
 
-    @Test("Widget 投影在跨日后按余额重算且跨发薪日结转")
-    func widgetProjection() throws {
+    @Test("投影在跨日后按余额重算且跨发薪日结转")
+    func snapshotProjection() throws {
         let start = date(2026, 11, 17, hour: 8)
         let initial = try resolver.initialResolution(
             setup: CycleSetup(initialBalanceCents: 100_000, startDate: start, nextPayday: date(2026, 11, 27)),

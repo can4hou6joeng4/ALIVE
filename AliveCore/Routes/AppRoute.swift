@@ -3,6 +3,7 @@ import Foundation
 public enum AppRoute: String, CaseIterable, Sendable {
     case today
     case quickEntry = "quick-entry"
+    case liveEntry = "live-entry"
     case balance
     case history
 

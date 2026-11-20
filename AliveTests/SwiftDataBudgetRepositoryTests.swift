@@ -34,9 +34,6 @@ struct SwiftDataBudgetRepositoryTests {
         #expect(expenses[0].cycleID == created.cycleID)
         #expect(expenses[0].amountCents == 4_000)
         #expect(expenses[0].note == "午饭")
-
-        let document = try #require(fixture.snapshotStore.read())
-        #expect(document.snapshot == snapshot)
     }
 
     @Test("编辑和删除支出在冷启动后保持")
@@ -113,6 +110,117 @@ struct SwiftDataBudgetRepositoryTests {
         try RepositoryFixture(calendar: calendar)
     }
 
+    @Test("同一草稿并发点击与冷启动重试只扣款一次")
+    func repeatedDraftIsIdempotent() async throws {
+        let fixture = try makeFixture()
+        defer { fixture.remove() }
+
+        let now = date(2026, 11, 20, hour: 9)
+        let repository = try fixture.makeRepository()
+        let created = try await repository.createCycle(
+            CycleSetup(initialBalanceCents: 100_000, startDate: now, nextPayday: date(2026, 11, 30)),
+            now: now
+        )
+        let id = UUID()
+        async let first = repository.addExpense(
+            id: id, amountCents: 1_860, note: "🍚", expectedCycleID: created.cycleID, at: now
+        )
+        async let repeated = repository.addExpense(
+            id: id, amountCents: 1_860, note: "🍚", expectedCycleID: created.cycleID, at: now
+        )
+        _ = try await (first, repeated)
+
+        let reloaded = try fixture.makeRepository()
+        let retried = try await reloaded.addExpense(
+            id: id, amountCents: 1_860, note: "🍚", expectedCycleID: created.cycleID, at: now
+        )
+        let expenses = try await reloaded.currentExpenses(at: now)
+        #expect(expenses.count == 1)
+        #expect(expenses.first?.id == id)
+        #expect(expenses.first?.note == "🍚")
+        #expect(retried.currentBalanceCents == 98_140)
+        #expect(retried.todaySpentCents == 1_860)
+        #expect(retried.todayAvailableCents == 8_140)
+    }
+
+    @Test("金额相同的独立草稿仍可分别记账")
+    func sameAmountDistinctDrafts() async throws {
+        let fixture = try makeFixture()
+        defer { fixture.remove() }
+
+        let now = date(2026, 11, 20, hour: 9)
+        let repository = try fixture.makeRepository()
+        let created = try await repository.createCycle(
+            CycleSetup(initialBalanceCents: 100_000, startDate: now, nextPayday: date(2026, 11, 30)),
+            now: now
+        )
+        _ = try await repository.addExpense(
+            id: UUID(), amountCents: 250, note: "🥤", expectedCycleID: created.cycleID, at: now
+        )
+        let second = try await repository.addExpense(
+            id: UUID(), amountCents: 250, note: "其他", expectedCycleID: created.cycleID, at: now
+        )
+        let expenses = try await repository.currentExpenses(at: now)
+        #expect(expenses.count == 2)
+        #expect(Set(expenses.map(\.id)).count == 2)
+        #expect(Set(expenses.compactMap(\.note)) == Set(["🥤", "其他"]))
+        #expect(second.currentBalanceCents == 99_500)
+        #expect(second.todayAvailableCents == 9_500)
+    }
+
+    @Test("已保存草稿的冲突重试不覆盖原记录")
+    func conflictingDraftDoesNotOverwriteExpense() async throws {
+        let fixture = try makeFixture()
+        defer { fixture.remove() }
+
+        let now = date(2026, 11, 20, hour: 9)
+        let repository = try fixture.makeRepository()
+        let created = try await repository.createCycle(
+            CycleSetup(initialBalanceCents: 100_000, startDate: now, nextPayday: date(2026, 11, 30)),
+            now: now
+        )
+        let id = UUID()
+        _ = try await repository.addExpense(
+            id: id, amountCents: 250, note: "🥤", expectedCycleID: created.cycleID, at: now
+        )
+        await #expect(throws: BudgetError.expenseAlreadyRecorded) {
+            try await repository.addExpense(
+                id: id, amountCents: 500, note: "其他", expectedCycleID: created.cycleID, at: now
+            )
+        }
+        let expenses = try await repository.currentExpenses(at: now)
+        let snapshot = try await repository.snapshot(at: now)
+        #expect(expenses.count == 1)
+        #expect(expenses.first?.amountCents == 250)
+        #expect(expenses.first?.note == "🥤")
+        #expect(snapshot.currentBalanceCents == 99_750)
+    }
+
+    @Test("发薪日后旧草稿不能误记入新周期")
+    func oldDraftCannotWriteIntoRolledCycle() async throws {
+        let fixture = try makeFixture()
+        defer { fixture.remove() }
+
+        let now = date(2026, 11, 20, hour: 9)
+        let repository = try fixture.makeRepository()
+        let created = try await repository.createCycle(
+            CycleSetup(initialBalanceCents: 100_000, startDate: now, nextPayday: date(2026, 11, 21)),
+            now: now
+        )
+        let payday = date(2026, 11, 21)
+        await #expect(throws: BudgetError.expenseOutsideCurrentCycle) {
+            try await repository.addExpense(
+                id: UUID(), amountCents: 250, note: "其他", expectedCycleID: created.cycleID, at: payday
+            )
+        }
+        let snapshot = try await repository.snapshot(at: payday)
+        let expenses = try await repository.currentExpenses(at: payday)
+        #expect(snapshot.cycleID != created.cycleID)
+        #expect(snapshot.currentBalanceCents == 100_000)
+        #expect(snapshot.todaySpentCents == 0)
+        #expect(expenses.isEmpty)
+    }
+
     private func date(_ year: Int, _ month: Int, _ day: Int, hour: Int = 0) -> Date {
         calendar.calendar.date(
             from: DateComponents(year: year, month: month, day: day, hour: hour)
@@ -124,7 +232,6 @@ private struct RepositoryFixture {
     let directory: URL
     let storeURL: URL
     let calendar: BudgetCalendar
-    let snapshotStore: BudgetSnapshotStore
 
     init(calendar: BudgetCalendar) throws {
         let directory = FileManager.default.temporaryDirectory
@@ -136,9 +243,6 @@ private struct RepositoryFixture {
         self.directory = directory
         storeURL = directory.appending(path: "Alive.store")
         self.calendar = calendar
-        snapshotStore = BudgetSnapshotStore(
-            directoryURL: directory.appending(path: "Snapshots", directoryHint: .isDirectory)
-        )
     }
 
     func makeRepository() throws -> SwiftDataBudgetRepository {
@@ -157,7 +261,7 @@ private struct RepositoryFixture {
         )
         return SwiftDataBudgetRepository(
             modelContainer: container,
-            snapshotStore: snapshotStore,
+            storeDirectoryURL: directory,
             calendar: calendar
         )
     }

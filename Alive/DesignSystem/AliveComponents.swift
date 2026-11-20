@@ -1,173 +1,83 @@
 import AliveCore
 import SwiftUI
+import UIKit
 
-struct BrassRule: View {
-    var subtle = false
-    @Environment(\.displayScale) private var displayScale
-
-    var body: some View {
-        Rectangle()
-            .fill(subtle ? AliveColor.lineSubtle : AliveColor.line)
-            .frame(height: max(0.5, 1 / displayScale))
-            .accessibilityHidden(true)
-    }
-}
-
+/// Large system-font amount with fixed currency formatting.
 struct AmountText: View {
     let cents: Decimal
     var size: CGFloat = 58
     var color: Color = AliveColor.ink
     var alignment: TextAlignment = .leading
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
+    private var isAccessibilitySize: Bool {
+        dynamicTypeSize.isAccessibilitySize
+    }
 
     var body: some View {
         Text(MoneyFormatter.currency(cents: cents))
             .font(AliveFont.display(size))
             .monospacedDigit()
-            .tracking(-0.055 * size)
+            .tracking(isAccessibilitySize ? 0 : -0.035 * size)
             .foregroundStyle(color)
             .multilineTextAlignment(alignment)
             .lineLimit(1)
-            .minimumScaleFactor(0.46)
+            .minimumScaleFactor(isAccessibilitySize ? 0.35 : 0.62)
+            .fixedSize(horizontal: false, vertical: true)
+            .contentTransition(reduceMotion ? .identity : .numericText())
             .accessibilityLabel(MoneyFormatter.spoken(cents: cents))
     }
 }
 
-struct CycleBadge: View {
-    let phase: BudgetPhase
+struct StatusPill: View {
+    let title: String
+    var isEmphasized = false
 
     var body: some View {
-        Text(label)
-            .font(AliveFont.sans(12, weight: .semibold, relativeTo: .caption))
-            .tracking(1.2)
-            .foregroundStyle(phase == .overspent ? AliveColor.overspend : AliveColor.inkSecondary)
-            .padding(.horizontal, AliveSpace.x2)
-            .padding(.vertical, AliveSpace.x1)
-            .overlay {
-                Rectangle()
-                    .stroke(phase == .overspent ? AliveColor.overspend : AliveColor.brass, lineWidth: 1)
-            }
-            .accessibilityLabel(label)
-    }
-
-    private var label: String {
-        switch phase {
-        case .pending:
-            "待开始"
-        case .active:
-            "进行中"
-        case .overspent:
-            "已超支"
-        }
+        Text(title)
+            .font(AliveFont.sans(12, weight: .semibold, relativeTo: .footnote))
+            .foregroundStyle(isEmphasized ? AliveColor.overspend : AliveColor.inkSecondary)
+            .lineLimit(1)
+            .padding(.horizontal, AliveSpace.x3)
+            .padding(.vertical, AliveSpace.x2)
+            .background(
+                Capsule().fill(isEmphasized ? AliveColor.overspend.opacity(0.12) : AliveColor.surfaceSunken)
+            )
+            .accessibilityLabel(title)
     }
 }
 
-struct OrreryRing: View {
+struct BudgetProgress: View {
     let progress: Double
-    let phase: BudgetPhase
-    var diameter: CGFloat = 92
+    var isOverspent = false
+
+    private var clamped: Double {
+        min(max(progress, 0), 1)
+    }
 
     var body: some View {
-        ZStack {
-            Circle()
-                .stroke(AliveColor.line, style: StrokeStyle(lineWidth: 1, dash: [1, 4]))
-
-            Circle()
-                .trim(from: 0, to: min(max(progress, 0), 1))
-                .stroke(
-                    phase == .overspent
-                        ? AnyShapeStyle(AliveColor.overspend)
-                        : AnyShapeStyle(AliveColor.brass),
-                    style: StrokeStyle(lineWidth: 2, lineCap: .butt)
-                )
-                .rotationEffect(.degrees(-90))
-
-            Circle()
-                .stroke(AliveColor.brassHighlight.opacity(0.55), lineWidth: 1)
-                .padding(8)
-
-            Circle()
-                .fill(phase == .overspent ? AliveColor.overspend : AliveColor.brass)
-                .frame(width: 5, height: 5)
-
-            AstrolabeTicks()
-                .stroke(AliveColor.brass.opacity(0.7), lineWidth: 0.8)
+        GeometryReader { proxy in
+            ZStack(alignment: .leading) {
+                Capsule().fill(AliveColor.surfaceSunken)
+                Capsule()
+                    .fill(isOverspent ? AliveColor.overspend : AliveColor.progress)
+                    .frame(width: proxy.size.width * clamped)
+            }
         }
-        .frame(width: diameter, height: diameter)
-        .accessibilityHidden(true)
+        .frame(height: 8)
     }
 }
 
-private struct AstrolabeTicks: Shape {
-    func path(in rect: CGRect) -> Path {
-        var path = Path()
-        let center = CGPoint(x: rect.midX, y: rect.midY)
-        let outer = min(rect.width, rect.height) / 2
-        for index in 0..<24 {
-            let angle = Double(index) / 24 * Double.pi * 2
-            let length: CGFloat = index.isMultiple(of: 6) ? 7 : 3
-            let start = CGPoint(
-                x: center.x + cos(angle) * (outer - length - 3),
-                y: center.y + sin(angle) * (outer - length - 3)
-            )
-            let end = CGPoint(
-                x: center.x + cos(angle) * (outer - 3),
-                y: center.y + sin(angle) * (outer - 3)
-            )
-            path.move(to: start)
-            path.addLine(to: end)
-        }
-        return path
-    }
-}
-
-struct OrreryBackground: View {
-    @Environment(\.displayScale) private var displayScale
-
-    var body: some View {
-        Canvas { context, size in
-            let hairline = max(0.5, 1 / displayScale)
-            let gridStep: CGFloat = 36
-            var grid = Path()
-
-            var x: CGFloat = 0
-            while x <= size.width {
-                grid.move(to: CGPoint(x: x, y: 0))
-                grid.addLine(to: CGPoint(x: x, y: size.height))
-                x += gridStep
-            }
-
-            var y: CGFloat = 0
-            while y <= size.height {
-                grid.move(to: CGPoint(x: 0, y: y))
-                grid.addLine(to: CGPoint(x: size.width, y: y))
-                y += gridStep
-            }
-            context.stroke(grid, with: .color(AliveColor.lineSubtle.opacity(0.38)), lineWidth: hairline)
-
-            let center = CGPoint(x: size.width * 0.82, y: size.height * 0.16)
-            for radius in [68.0, 118.0, 172.0] {
-                let rect = CGRect(
-                    x: center.x - radius,
-                    y: center.y - radius,
-                    width: radius * 2,
-                    height: radius * 2
-                )
-                context.stroke(
-                    Path(ellipseIn: rect),
-                    with: .color(AliveColor.brass.opacity(0.13)),
-                    lineWidth: hairline
-                )
-            }
-
-            var ray = Path()
-            let rayEnd = CGPoint(x: center.x + 210, y: center.y + 110)
-            ray.move(to: center)
-            ray.addLine(to: rayEnd)
-            context.stroke(ray, with: .color(AliveColor.brass.opacity(0.14)), lineWidth: hairline)
-        }
-        .background(AliveColor.canvas)
-        .ignoresSafeArea()
-        .accessibilityHidden(true)
+/// Draws a label exactly as designed, dipping its opacity only while pressed.
+///
+/// `.plain` also dims a disabled label. The action capsules define their own
+/// disabled colors; dimming those again washes the title out and lets content
+/// scrolled behind a floating bar show through the capsule.
+private struct SolidButtonStyle: ButtonStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .opacity(configuration.isPressed ? 0.6 : 1)
     }
 }
 
@@ -176,48 +86,227 @@ struct PrimaryAction: View {
     var systemImage: String?
     var isBusy = false
     var action: () -> Void
+    @Environment(\.isEnabled) private var isEnabled
 
     var body: some View {
         Button(action: action) {
             HStack(spacing: AliveSpace.x2) {
                 if isBusy {
                     ProgressView()
-                        .tint(AliveColor.canvas)
+                        .tint(isEnabled ? .white : AliveColor.inkTertiary)
                         .controlSize(.small)
+                        .accessibilityHidden(true)
                 } else if let systemImage {
                     Image(systemName: systemImage)
-                        .font(.system(size: 15, weight: .semibold))
+                        .font(.system(size: 16, weight: .semibold))
+                        .accessibilityHidden(true)
                 }
                 Text(title)
                     .font(AliveFont.sans(16, weight: .semibold, relativeTo: .headline))
-                    .tracking(0.5)
             }
-            .foregroundStyle(AliveColor.canvas)
+            .foregroundStyle(isEnabled ? Color.white : AliveColor.inkTertiary)
             .frame(maxWidth: .infinity)
             .frame(minHeight: 52)
-            .padding(.horizontal, AliveSpace.x3)
-            .background(AliveColor.ink)
+            .padding(.horizontal, AliveSpace.x4)
+            .background(
+                Capsule().fill(isEnabled ? AliveColor.accentFill : AliveColor.surfaceSunken)
+            )
             .overlay {
-                Rectangle()
-                    .stroke(AliveColor.brassHighlight.opacity(0.28), lineWidth: 1)
+                Capsule().stroke(isEnabled ? Color.clear : AliveColor.separator, lineWidth: 0.5)
             }
+            .contentShape(Capsule())
         }
-        .buttonStyle(AlivePrimaryButtonStyle())
-        .disabled(isBusy)
+        .buttonStyle(SolidButtonStyle())
+        .disabled(isBusy || !isEnabled)
     }
 }
 
-private struct AlivePrimaryButtonStyle: ButtonStyle {
-    func makeBody(configuration: Configuration) -> some View {
-        configuration.label
-            .overlay {
-                if configuration.isPressed {
-                    Rectangle()
-                        .stroke(AliveColor.holo, lineWidth: 1)
-                }
+/// Circular Liquid Glass icon action for floating top chrome.
+struct GlassIconButton: View {
+    let systemName: String
+    let accessibilityLabel: String
+    var accessibilityValue: String = ""
+    var accessibilityHint: String = ""
+    var isEnabled = true
+    var action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            Image(systemName: systemName)
+                .font(.system(size: 16, weight: .semibold))
+                .frame(width: 44, height: 44)
+                .contentShape(Circle())
+                .glassEffect(.regular.interactive(), in: Circle())
+        }
+        .buttonStyle(.plain)
+        .foregroundStyle(AliveColor.ink)
+        .disabled(!isEnabled)
+        .opacity(isEnabled ? 1 : 0.44)
+        .accessibilityLabel(accessibilityLabel)
+        .accessibilityValue(accessibilityValue)
+        .accessibilityHint(accessibilityHint)
+    }
+}
+
+/// Single-surface icon action for the top navigation chrome.
+///
+/// The glass treatment adds an inner rim and highlight that reads as a second
+/// button at toolbar size. Top chrome uses one tonal surface instead; Liquid
+/// Glass stays reserved for floating interaction layers.
+struct TopChromeIconButton: View {
+    let systemName: String
+    let accessibilityLabel: String
+    var accessibilityValue: String = ""
+    var accessibilityHint: String = ""
+    var isEnabled = true
+    var action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            Image(systemName: systemName)
+                .font(.system(size: 16, weight: .semibold))
+                .frame(width: 44, height: 44)
+                .contentShape(Circle())
+                .background(Circle().fill(AliveColor.surfaceElevated))
+        }
+        .buttonStyle(.plain)
+        .foregroundStyle(AliveColor.ink)
+        .disabled(!isEnabled)
+        .opacity(isEnabled ? 1 : 0.44)
+        .accessibilityLabel(accessibilityLabel)
+        .accessibilityValue(accessibilityValue)
+        .accessibilityHint(accessibilityHint)
+    }
+}
+
+extension DynamicTypeSize {
+    /// Largest text size for controls that can neither wrap nor shrink: the floating
+    /// action bar and the system date picker. Content text keeps the full scale.
+    ///
+    /// A compact `DatePicker` is exactly as wide as its date. Above this size the
+    /// date alone is wider than a card and pushes the whole page off both screen edges.
+    static let aliveControlLimit: DynamicTypeSize = .accessibility2
+}
+
+/// Floating glass action area above the home indicator or keyboard.
+struct GlassActionBar<Content: View>: View {
+    let content: Content
+    var axis: Axis = .horizontal
+
+    init(axis: Axis = .horizontal, @ViewBuilder content: () -> Content) {
+        self.axis = axis
+        self.content = content()
+    }
+
+    private var layout: AnyLayout {
+        axis == .horizontal
+            ? AnyLayout(HStackLayout(spacing: AliveSpace.x2))
+            : AnyLayout(VStackLayout(spacing: AliveSpace.x2))
+    }
+
+    var body: some View {
+        GlassEffectContainer(spacing: AliveSpace.x2) {
+            layout {
+                content
             }
-            .opacity(configuration.isPressed ? 0.88 : 1)
-            .animation(AliveMotion.quick, value: configuration.isPressed)
+            // Keep the floating controls usable at the largest accessibility sizes;
+            // the scrollable content still uses the full Dynamic Type scale.
+            .dynamicTypeSize(...DynamicTypeSize.aliveControlLimit)
+            .padding(.horizontal, AliveSpace.pageInset)
+            .padding(.top, AliveSpace.x2)
+            .padding(.bottom, AliveSpace.x1)
+            .frame(maxWidth: .infinity)
+        }
+        .background {
+            LinearGradient(
+                stops: [
+                    .init(color: AliveColor.canvas.opacity(0), location: 0),
+                    .init(color: AliveColor.canvas, location: 0.55)
+                ],
+                startPoint: .top,
+                endPoint: .bottom
+            )
+            .ignoresSafeArea(edges: .bottom)
+            .allowsHitTesting(false)
+        }
+    }
+}
+
+struct GlassActionButton: View {
+    let title: String
+    var systemImage: String?
+    var isProminent = false
+    var isBusy = false
+    var accessibilityHint: String = ""
+    var action: () -> Void
+    @Environment(\.isEnabled) private var isEnabled
+
+    private var fill: Color {
+        if !isEnabled { return AliveColor.surfaceSunken }
+        return isProminent ? AliveColor.accentFill : AliveColor.surfaceElevated
+    }
+
+    private var contentColor: Color {
+        if !isEnabled { return AliveColor.inkTertiary }
+        return isProminent ? Color.white : AliveColor.ink
+    }
+
+    var body: some View {
+        Button(action: action) {
+            HStack(spacing: AliveSpace.x2) {
+                if isBusy {
+                    ProgressView()
+                        .tint(contentColor)
+                        .controlSize(.small)
+                        .accessibilityHidden(true)
+                } else if let systemImage {
+                    Image(systemName: systemImage)
+                        .font(.system(size: 15, weight: .semibold))
+                        .accessibilityHidden(true)
+                }
+                Text(title)
+                    .font(AliveFont.sans(15, weight: .semibold, relativeTo: .headline))
+                    .lineLimit(2)
+                    .multilineTextAlignment(.center)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .minimumScaleFactor(0.8)
+            }
+            .foregroundStyle(contentColor)
+            .frame(maxWidth: .infinity)
+            .padding(.horizontal, AliveSpace.x4)
+            .padding(.vertical, AliveSpace.x3)
+            .frame(minHeight: 50)
+            .background(Capsule().fill(fill))
+            .overlay {
+                Capsule().stroke(
+                    isEnabled && !isProminent ? AliveColor.separator : Color.clear,
+                    lineWidth: 0.5
+                )
+            }
+            .contentShape(Capsule())
+        }
+        .buttonStyle(SolidButtonStyle())
+        .disabled(isBusy || !isEnabled)
+        .accessibilityHint(accessibilityHint)
+    }
+}
+
+/// The app's only keyboard dismissal control; shown while a field has focus,
+/// in the `GlassActionBar` above the keyboard or next to the field.
+///
+/// It replaces `ToolbarItemGroup(placement: .keyboard)`, which must not be used:
+/// a keyboard toolbar leaves the keyboard safe area wrong until the next key
+/// press — on its own screen and on the next keyboard shown after it — so a
+/// bottom action bar ends up under the keyboard or under the toolbar.
+struct KeyboardDismissButton: View {
+    var action: () -> Void
+
+    var body: some View {
+        GlassIconButton(
+            systemName: "keyboard.chevron.compact.down",
+            accessibilityLabel: "收起键盘",
+            action: action
+        )
     }
 }
 
@@ -230,8 +319,7 @@ struct GhostButton: View {
         Button(action: action) {
             Text(title)
                 .font(AliveFont.sans(14, weight: .medium, relativeTo: .subheadline))
-                .tracking(0.4)
-                .foregroundStyle(isEnabled ? AliveColor.inkSecondary : AliveColor.inkTertiary)
+                .foregroundStyle(isEnabled ? AliveColor.accent : AliveColor.inkTertiary)
                 .frame(minHeight: 44)
                 .contentShape(Rectangle())
         }
@@ -240,21 +328,19 @@ struct GhostButton: View {
     }
 }
 
-struct IconAction: View {
-    let systemName: String
-    let accessibilityLabel: String
-    var action: () -> Void
+struct ModalCloseButton: View {
+    let action: () -> Void
 
     var body: some View {
         Button(action: action) {
-            Image(systemName: systemName)
-                .font(.system(size: 17, weight: .medium))
-                .foregroundStyle(AliveColor.inkSecondary)
+            Image(systemName: "xmark")
+                .font(.system(size: 15, weight: .semibold))
                 .frame(width: 44, height: 44)
-                .contentShape(Rectangle())
+                .contentShape(Circle())
         }
         .buttonStyle(.plain)
-        .accessibilityLabel(accessibilityLabel)
+        .foregroundStyle(AliveColor.ink)
+        .accessibilityLabel("关闭")
     }
 }
 
@@ -263,21 +349,18 @@ struct SheetHeader: View {
     var close: () -> Void
 
     var body: some View {
-        VStack(spacing: 0) {
-            HStack(alignment: .center) {
-                Text(title)
-                    .font(AliveFont.sans(22, weight: .semibold, relativeTo: .title3))
-                    .foregroundStyle(AliveColor.ink)
+        HStack(alignment: .center, spacing: AliveSpace.x2) {
+            Text(title)
+                .font(.system(size: 28, weight: .bold))
+                .foregroundStyle(AliveColor.ink)
+                .fixedSize(horizontal: false, vertical: true)
+                .accessibilityAddTraits(.isHeader)
 
-                Spacer()
+            Spacer(minLength: AliveSpace.x3)
 
-                Button("关闭", action: close)
-                    .font(AliveFont.sans(14, weight: .medium, relativeTo: .subheadline))
-                    .foregroundStyle(AliveColor.inkSecondary)
-                    .frame(minWidth: 44, minHeight: 44)
-            }
-            BrassRule()
+            ModalCloseButton(action: close)
         }
+        .padding(.bottom, AliveSpace.x3)
     }
 }
 
@@ -286,9 +369,9 @@ struct FieldLabel: View {
 
     var body: some View {
         Text(text)
-            .font(AliveFont.sans(12, weight: .semibold, relativeTo: .caption))
-            .tracking(1.4)
-            .foregroundStyle(AliveColor.inkTertiary)
+            .font(AliveFont.sans(13, weight: .semibold, relativeTo: .footnote))
+            .foregroundStyle(AliveColor.inkSecondary)
+            .accessibilityHidden(true)
     }
 }
 
@@ -302,23 +385,52 @@ struct InlineError: View {
                 .foregroundStyle(AliveColor.overspend)
                 .fixedSize(horizontal: false, vertical: true)
                 .accessibilityLabel("错误：\(message)")
+                .onAppear { announce(message) }
+                .onChange(of: message) { _, newValue in announce(newValue) }
+        }
+    }
+
+    private func announce(_ text: String) {
+        Task { @MainActor in
+            UIAccessibility.post(notification: .announcement, argument: text)
         }
     }
 }
 
-struct OrnamentalRingMark: View {
+/// Reusable grouped card container for native card-flow layouts.
+struct SurfaceCard<Content: View>: View {
+    var padding: CGFloat = AliveSpace.x5
+    let content: Content
+
+    init(padding: CGFloat = AliveSpace.x5, @ViewBuilder content: () -> Content) {
+        self.padding = padding
+        self.content = content()
+    }
+
     var body: some View {
-        ZStack {
-            Circle()
-                .stroke(AliveColor.brass, lineWidth: 1)
-            Circle()
-                .stroke(AliveColor.brassHighlight.opacity(0.6), lineWidth: 1)
-                .padding(4)
-            Circle()
-                .fill(AliveColor.brass)
-                .frame(width: 3, height: 3)
-        }
-        .frame(width: 18, height: 18)
-        .accessibilityHidden(true)
+        content
+            .padding(padding)
+            .background(
+                RoundedRectangle(cornerRadius: AliveRadius.card, style: .continuous)
+                    .fill(AliveColor.card)
+            )
+            .overlay {
+                RoundedRectangle(cornerRadius: AliveRadius.card, style: .continuous)
+                    .stroke(AliveColor.separator, lineWidth: 0.5)
+            }
+    }
+}
+
+private struct NativeBackground: View {
+    var body: some View {
+        AliveColor.canvas
+            .ignoresSafeArea()
+            .accessibilityHidden(true)
+    }
+}
+
+extension View {
+    func aliveScreenBackground() -> some View {
+        background(NativeBackground())
     }
 }
