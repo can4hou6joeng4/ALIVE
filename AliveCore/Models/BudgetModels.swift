@@ -363,6 +363,7 @@ public enum BudgetError: Error, Equatable, LocalizedError, Sendable {
     case archivedCycleReadOnly
     case expenseNotFound
     case expenseOutsideCurrentCycle
+    case expenseAlreadyRecorded
     case storageUnavailable
     case snapshotUnavailable
 
@@ -388,6 +389,8 @@ public enum BudgetError: Error, Equatable, LocalizedError, Sendable {
             "这笔支出已不存在。"
         case .expenseOutsideCurrentCycle:
             "只能修改当前周期的支出。"
+        case .expenseAlreadyRecorded:
+            "这笔支出已经记录，请返回 App 查看。"
         case .storageUnavailable:
             "本地数据暂时不可用，请稍后重试。"
         case .snapshotUnavailable:

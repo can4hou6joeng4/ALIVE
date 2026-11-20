@@ -131,7 +131,9 @@ public struct BudgetResolver: Sendable {
         to state: BudgetState,
         amountCents: Int,
         note: String?,
-        at date: Date
+        at date: Date,
+        id: UUID = UUID(),
+        expectedCycleID: UUID? = nil
     ) throws -> BudgetResolution {
         guard amountCents > 0 else { throw BudgetError.invalidAmount }
         let cleanedNote = try validatedNote(note)
@@ -142,10 +144,24 @@ public struct BudgetResolver: Sendable {
         guard date >= snapshot.startDate, date < snapshot.payday else {
             throw BudgetError.cycleNotActive
         }
+        guard expectedCycleID == nil || expectedCycleID == snapshot.cycleID else {
+            throw BudgetError.expenseOutsideCurrentCycle
+        }
+
+        if let existing = initial.state.expenses.first(where: { $0.id == id }) {
+            guard existing.cycleID == snapshot.cycleID,
+                  existing.amountCents == amountCents,
+                  existing.note == cleanedNote
+            else {
+                throw BudgetError.expenseAlreadyRecorded
+            }
+            return initial
+        }
 
         var updated = initial.state
         updated.expenses.append(
             Expense(
+                id: id,
                 cycleID: snapshot.cycleID,
                 amountCents: amountCents,
                 occurredAt: date,

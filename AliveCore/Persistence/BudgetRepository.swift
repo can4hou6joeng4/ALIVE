@@ -5,6 +5,13 @@ public protocol BudgetRepository: Sendable {
     func createCycle(_ setup: CycleSetup, now: Date) async throws -> BudgetSnapshot
     func snapshot(at date: Date) async throws -> BudgetSnapshot
     func addExpense(amountCents: Int, note: String?, at date: Date) async throws -> BudgetSnapshot
+    func addExpense(
+        id: UUID,
+        amountCents: Int,
+        note: String?,
+        expectedCycleID: UUID?,
+        at date: Date
+    ) async throws -> BudgetSnapshot
     func updateExpense(id: UUID, amountCents: Int, note: String?, now: Date) async throws -> BudgetSnapshot
     func deleteExpense(id: UUID, now: Date) async throws -> BudgetSnapshot
     func overrideCurrentBalance(cents: Int, at date: Date) async throws -> BudgetSnapshot

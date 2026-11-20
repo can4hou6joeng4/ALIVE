@@ -1,7 +1,9 @@
 import Foundation
 import SwiftData
+import Synchronization
 
 public actor SwiftDataBudgetRepository: BudgetRepository {
+    private static let defaultRepositories = Mutex<[String: SwiftDataBudgetRepository]>([:])
     private let modelContainer: ModelContainer
     private let storeDirectoryURL: URL?
     private let resolver: BudgetResolver
@@ -20,6 +22,18 @@ public actor SwiftDataBudgetRepository: BudgetRepository {
     }
 
     public static func makeDefault(calendar: BudgetCalendar = BudgetCalendar()) throws -> SwiftDataBudgetRepository {
+        try defaultRepositories.withLock { repositories in
+            let key = calendar.timeZone.identifier
+            if let repository = repositories[key] {
+                return repository
+            }
+            let repository = try makeDefaultStore(calendar: calendar)
+            repositories[key] = repository
+            return repository
+        }
+    }
+
+    private static func makeDefaultStore(calendar: BudgetCalendar) throws -> SwiftDataBudgetRepository {
         let applicationSupport = try FileManager.default.url(
             for: .applicationSupportDirectory,
             in: .userDomainMask,
@@ -81,12 +95,30 @@ public actor SwiftDataBudgetRepository: BudgetRepository {
     }
 
     public func addExpense(amountCents: Int, note: String?, at date: Date) async throws -> BudgetSnapshot {
-        let state = try resolveAndPersist(at: date).state
+        try await addExpense(
+            id: UUID(),
+            amountCents: amountCents,
+            note: note,
+            expectedCycleID: nil,
+            at: date
+        )
+    }
+
+    public func addExpense(
+        id: UUID,
+        amountCents: Int,
+        note: String?,
+        expectedCycleID: UUID?,
+        at date: Date
+    ) async throws -> BudgetSnapshot {
+        let state = try loadState()
         let resolution = try resolver.addExpense(
             to: state,
             amountCents: amountCents,
             note: note,
-            at: date
+            at: date,
+            id: id,
+            expectedCycleID: expectedCycleID
         )
         try persist(resolution.state)
         guard let snapshot = resolution.snapshot else { throw BudgetError.noCycle }
