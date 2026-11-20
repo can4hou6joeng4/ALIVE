@@ -3,22 +3,26 @@ import SwiftUI
 
 /// The quick-entry card that unfolds from the top of the Today screen.
 ///
-/// It is a light overlay rather than a sheet: tapping 记一笔 in the Live
-/// Activity (or on the Today screen) drops a card from the Dynamic Island area,
-/// the amount is focused at once, and the Today screen stays visible behind it.
-/// Quick notes come from fixed tags; free-text notes remain in the edit form.
+/// It is a light overlay rather than a sheet: tapping 记一笔 on the Today screen
+/// drops a card from the Dynamic Island area over the dimmed Today screen. A
+/// Live Activity link uses the same card inside `LiveEntryContinuityView`, which
+/// hides Today and keeps the activity summary at the top. The amount is focused
+/// at once; notes can be typed freely or filled from the common tags.
 struct QuickEntryCard: View {
     let model: AppModel
+    var fillsAvailableHeight = false
 
     static let noteTags = ["午饭", "咖啡", "超市", "交通"]
 
     @State private var amountText = ""
+    @State private var noteText = ""
     @State private var selectedTag: String?
     @State private var isSaving = false
     @State private var errorText: String?
     @State private var saveSucceeded = false
     @State private var isUnfolded = false
     @FocusState private var isAmountFocused: Bool
+    @FocusState private var isNoteFocused: Bool
     @AccessibilityFocusState private var isTitleFocused: Bool
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
@@ -47,7 +51,19 @@ struct QuickEntryCard: View {
         VStack(alignment: .leading, spacing: 0) {
             header
 
-            if dynamicTypeSize.isAccessibilitySize {
+            if fillsAvailableHeight {
+                ScrollView {
+                    sections
+                }
+                .scrollBounceBehavior(.basedOnSize)
+                .scrollEdgeEffectStyle(.soft, for: .bottom)
+                .frame(maxHeight: .infinity)
+
+                Rectangle()
+                    .fill(AliveColor.separator)
+                    .frame(height: 0.5)
+                    .padding(.horizontal, AliveSpace.x5)
+            } else if dynamicTypeSize.isAccessibilitySize {
                 // A greedy ScrollView would stretch the card over the keyboard.
                 // Only the largest text sizes need scrolling; the card otherwise
                 // stays as tall as its content.
@@ -65,14 +81,7 @@ struct QuickEntryCard: View {
                 sections
             }
 
-            PrimaryAction(title: "保存", systemImage: "checkmark", isBusy: isSaving) {
-                save()
-            }
-            .disabled(!canSave)
-            .accessibilityHint("保存这笔支出并更新今天还可花。")
-            .padding(.horizontal, AliveSpace.x5)
-            .padding(.top, AliveSpace.x2)
-            .padding(.bottom, AliveSpace.x4)
+            saveButton
         }
         .background(cardBackground)
         // The unfold is a render transform, not a view transition: a field focused
@@ -97,12 +106,21 @@ struct QuickEntryCard: View {
         .onChange(of: amountText) { _, _ in
             errorText = nil
         }
+        .onChange(of: noteText) { _, newValue in
+            if newValue.count > 80 {
+                noteText = String(newValue.prefix(80))
+                return
+            }
+            if let selectedTag, newValue != selectedTag {
+                self.selectedTag = nil
+            }
+        }
     }
 
     private var sections: some View {
         VStack(alignment: .leading, spacing: AliveSpace.x4) {
             amountSection
-            tagSection
+            noteSection
             timestamp
             InlineError(message: errorText ?? validationMessage)
         }
@@ -121,19 +139,22 @@ struct QuickEntryCard: View {
 
             Spacer(minLength: AliveSpace.x2)
 
-            Button(action: close) {
-                Image(systemName: "xmark")
-                    .font(.system(size: 15, weight: .semibold))
-                    .frame(width: 44, height: 44)
-                    .contentShape(Circle())
-            }
-            .buttonStyle(.plain)
-            .foregroundStyle(AliveColor.ink)
-            .accessibilityLabel("关闭")
+            ModalCloseButton(action: close)
         }
         .padding(.leading, AliveSpace.x5)
         .padding(.trailing, AliveSpace.x3)
         .padding(.top, AliveSpace.x3)
+    }
+
+    private var saveButton: some View {
+        PrimaryAction(title: "保存", systemImage: "checkmark", isBusy: isSaving) {
+            save()
+        }
+        .disabled(!canSave)
+        .accessibilityHint("保存这笔支出并更新今天还可花。")
+        .padding(.horizontal, AliveSpace.x5)
+        .padding(.top, AliveSpace.x2)
+        .padding(.bottom, AliveSpace.x4)
     }
 
     private var amountSection: some View {
@@ -162,17 +183,38 @@ struct QuickEntryCard: View {
         }
     }
 
-    private var tagSection: some View {
+    private var noteSection: some View {
         VStack(alignment: .leading, spacing: AliveSpace.x2) {
-            Text("备注")
-                .font(AliveFont.sans(13, weight: .semibold, relativeTo: .footnote))
-                .foregroundStyle(AliveColor.inkSecondary)
-                .accessibilityAddTraits(.isHeader)
+            FieldLabel(text: "备注（可选）")
+
+            TextField("例如：午饭", text: $noteText)
+                .font(AliveFont.sans(15, weight: .medium, relativeTo: .body))
+                .textInputAutocapitalization(.never)
+                .autocorrectionDisabled()
+                .submitLabel(.done)
+                .focused($isNoteFocused)
+                .padding(.horizontal, AliveSpace.x3)
+                .frame(minHeight: 44)
+                .background(
+                    RoundedRectangle(cornerRadius: AliveRadius.control, style: .continuous)
+                        .fill(AliveColor.surfaceSunken)
+                )
+                .overlay {
+                    RoundedRectangle(cornerRadius: AliveRadius.control, style: .continuous)
+                        .stroke(AliveColor.separator, lineWidth: 0.5)
+                }
+                .accessibilityLabel("备注")
+                .accessibilityHint("可选，最多 80 个字符。也可以点选下面的常用标签。")
+
+            Text("常用")
+                .font(AliveFont.sans(12, weight: .medium, relativeTo: .caption))
+                .foregroundStyle(AliveColor.inkTertiary)
+                .accessibilityHidden(true)
 
             LazyVGrid(
                 columns: Array(
                     repeating: GridItem(.flexible(), spacing: AliveSpace.x2),
-                    count: dynamicTypeSize.isAccessibilitySize ? 1 : 2
+                    count: dynamicTypeSize.isAccessibilitySize ? 1 : 4
                 ),
                 alignment: .leading,
                 spacing: AliveSpace.x2
@@ -187,7 +229,15 @@ struct QuickEntryCard: View {
     private func tagChip(_ tag: String) -> some View {
         let isSelected = selectedTag == tag
         return Button {
-            selectedTag = isSelected ? nil : tag
+            if isSelected {
+                selectedTag = nil
+                if noteText == tag {
+                    noteText = ""
+                }
+            } else {
+                selectedTag = tag
+                noteText = tag
+            }
         } label: {
             HStack(spacing: AliveSpace.x1) {
                 if isSelected {
@@ -213,7 +263,7 @@ struct QuickEntryCard: View {
         .buttonStyle(.plain)
         .accessibilityLabel(tag)
         .accessibilityAddTraits(isSelected ? .isSelected : [])
-        .accessibilityHint(isSelected ? "再点一次取消备注。" : "把备注设为\(tag)。")
+        .accessibilityHint(isSelected ? "再点一次从备注中移除。" : "把备注填为\(tag)，可以继续修改。")
     }
 
     private var timestamp: some View {
@@ -242,12 +292,15 @@ struct QuickEntryCard: View {
     private func save() {
         guard let amountCents, canSave else { return }
         isAmountFocused = false
+        isNoteFocused = false
         isSaving = true
         errorText = nil
 
         Task {
             do {
-                try await model.addExpense(amountCents: amountCents, note: selectedTag)
+                let trimmedNote = noteText.trimmingCharacters(in: .whitespacesAndNewlines)
+                let note = trimmedNote.isEmpty ? nil : String(trimmedNote.prefix(80))
+                try await model.addExpense(amountCents: amountCents, note: note)
                 saveSucceeded.toggle()
                 close()
             } catch {
@@ -259,6 +312,7 @@ struct QuickEntryCard: View {
 
     private func close() {
         isAmountFocused = false
+        isNoteFocused = false
         model.closeQuickEntry()
     }
 }

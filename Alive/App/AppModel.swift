@@ -31,6 +31,11 @@ final class AppModel {
         case history
     }
 
+    enum QuickEntryPresentation: Equatable {
+        case standard
+        case liveActivity
+    }
+
     private let calendar = BudgetCalendar()
     private var repository: (any BudgetRepository)?
     private var didBootstrap = false
@@ -45,6 +50,7 @@ final class AppModel {
     var alertMessage: String?
     var isSettingsPresented = false
     var isQuickEntryPresented = false
+    var quickEntryPresentation: QuickEntryPresentation = .standard
     let activity = BudgetActivityController()
 
     func bootstrap() async {
@@ -158,7 +164,7 @@ final class AppModel {
         }
     }
 
-    func openQuickExpense() {
+    func openQuickExpense(presentation: QuickEntryPresentation = .standard) {
         guard let snapshot else { return }
         guard snapshot.phase != .pending else {
             alertMessage = BudgetError.cycleNotActive.localizedDescription
@@ -167,6 +173,7 @@ final class AppModel {
         path = []
         isSettingsPresented = false
         sheet = nil
+        quickEntryPresentation = presentation
         isQuickEntryPresented = true
     }
 
@@ -228,6 +235,8 @@ final class AppModel {
             path = []
         case .quickEntry:
             openQuickExpense()
+        case .liveEntry:
+            openQuickExpense(presentation: .liveActivity)
         case .balance:
             openBalance()
         case .history:

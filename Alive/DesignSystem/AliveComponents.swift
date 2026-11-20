@@ -148,6 +148,37 @@ struct GlassIconButton: View {
     }
 }
 
+/// Single-surface icon action for the top navigation chrome.
+///
+/// The glass treatment adds an inner rim and highlight that reads as a second
+/// button at toolbar size. Top chrome uses one tonal surface instead; Liquid
+/// Glass stays reserved for floating interaction layers.
+struct TopChromeIconButton: View {
+    let systemName: String
+    let accessibilityLabel: String
+    var accessibilityValue: String = ""
+    var accessibilityHint: String = ""
+    var isEnabled = true
+    var action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            Image(systemName: systemName)
+                .font(.system(size: 16, weight: .semibold))
+                .frame(width: 44, height: 44)
+                .contentShape(Circle())
+                .background(Circle().fill(AliveColor.surfaceElevated))
+        }
+        .buttonStyle(.plain)
+        .foregroundStyle(AliveColor.ink)
+        .disabled(!isEnabled)
+        .opacity(isEnabled ? 1 : 0.44)
+        .accessibilityLabel(accessibilityLabel)
+        .accessibilityValue(accessibilityValue)
+        .accessibilityHint(accessibilityHint)
+    }
+}
+
 extension DynamicTypeSize {
     /// Largest text size for controls that can neither wrap nor shrink: the floating
     /// action bar and the system date picker. Content text keeps the full scale.
@@ -297,37 +328,39 @@ struct GhostButton: View {
     }
 }
 
+struct ModalCloseButton: View {
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            Image(systemName: "xmark")
+                .font(.system(size: 15, weight: .semibold))
+                .frame(width: 44, height: 44)
+                .contentShape(Circle())
+        }
+        .buttonStyle(.plain)
+        .foregroundStyle(AliveColor.ink)
+        .accessibilityLabel("关闭")
+    }
+}
+
 struct SheetHeader: View {
     let title: String
     var close: () -> Void
 
     var body: some View {
-        VStack(spacing: 0) {
-            HStack(alignment: .center) {
-                VStack(alignment: .leading, spacing: 2) {
-                    Text(title)
-                        .font(.system(size: 28, weight: .bold))
-                        .foregroundStyle(AliveColor.ink)
-                        .accessibilityAddTraits(.isHeader)
-                    Text("ALIVE")
-                        .font(AliveFont.sans(10, weight: .semibold, relativeTo: .caption2))
-                        .tracking(1.6)
-                        .foregroundStyle(AliveColor.inkTertiary)
-                }
-                Spacer()
-                Button(action: close) {
-                    Text("关闭")
-                        .font(AliveFont.sans(15, weight: .semibold, relativeTo: .subheadline))
-                        .foregroundStyle(AliveColor.accent)
-                        .padding(.horizontal, AliveSpace.x3)
-                        .frame(minHeight: 44)
-                        .contentShape(Rectangle())
-                }
-                .buttonStyle(.plain)
-                .accessibilityLabel("关闭")
-            }
-            .padding(.bottom, AliveSpace.x3)
+        HStack(alignment: .center, spacing: AliveSpace.x2) {
+            Text(title)
+                .font(.system(size: 28, weight: .bold))
+                .foregroundStyle(AliveColor.ink)
+                .fixedSize(horizontal: false, vertical: true)
+                .accessibilityAddTraits(.isHeader)
+
+            Spacer(minLength: AliveSpace.x3)
+
+            ModalCloseButton(action: close)
         }
+        .padding(.bottom, AliveSpace.x3)
     }
 }
 

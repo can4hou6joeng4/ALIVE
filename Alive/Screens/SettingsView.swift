@@ -54,15 +54,15 @@ struct SettingsView: View {
 
     var body: some View {
         ScrollView {
-                VStack(alignment: .leading, spacing: AliveSpace.x6) {
-                    appearanceSection
-                    liveActivitySection
-                    cycleSection
-                    privacySection
-                }
-                .padding(.horizontal, AliveSpace.pageInset)
-                .padding(.top, AliveSpace.x4)
-                .padding(.bottom, AliveSpace.x4)
+            VStack(alignment: .leading, spacing: AliveSpace.x6) {
+                appearanceSection
+                liveActivitySection
+                cycleSection
+                privacySection
+            }
+            .padding(.horizontal, AliveSpace.pageInset)
+            .padding(.top, AliveSpace.x4)
+            .padding(.bottom, AliveSpace.x4)
         }
         // The keyboard scrolls a focused field only just into view; this keeps the
         // balance row and its dismiss button clear of the keyboard's top edge.
@@ -80,27 +80,38 @@ struct SettingsView: View {
 
     private var appearanceSection: some View {
         settingsSection("外观") {
-            HStack(spacing: AliveSpace.x3) {
-                Image(systemName: "circle.lefthalf.filled")
-                    .font(.system(size: 18, weight: .medium))
-                    .foregroundStyle(AliveColor.accent)
-                    .frame(width: 24)
-                    .accessibilityHidden(true)
-                VStack(alignment: .leading, spacing: AliveSpace.x1) {
-                    Text("跟随系统")
-                        .font(AliveFont.sans(15, weight: .semibold, relativeTo: .body))
-                        .foregroundStyle(AliveColor.ink)
-                    Text("浅色与深色自动切换，App 与实时活动保持一致。")
-                        .font(AliveFont.sans(12, relativeTo: .caption))
-                        .foregroundStyle(AliveColor.inkTertiary)
-                        .fixedSize(horizontal: false, vertical: true)
+            Group {
+                if dynamicTypeSize.isAccessibilitySize {
+                    HStack(alignment: .top, spacing: AliveSpace.x3) {
+                        settingsGlyph("circle.lefthalf.filled")
+                        appearanceCopy
+                    }
+                } else {
+                    HStack(spacing: AliveSpace.x3) {
+                        settingsGlyph("circle.lefthalf.filled")
+                        appearanceCopy
+                        Spacer(minLength: AliveSpace.x2)
+                        StatusPill(title: "自动")
+                            .accessibilityHidden(true)
+                    }
                 }
-                Spacer(minLength: 0)
             }
             .accessibilityElement(children: .combine)
+            .accessibilityLabel("跟随系统，浅色与深色自动切换")
         }
     }
 
+    private var appearanceCopy: some View {
+        VStack(alignment: .leading, spacing: AliveSpace.x1) {
+            Text("跟随系统")
+                .font(AliveFont.sans(15, weight: .semibold, relativeTo: .body))
+                .foregroundStyle(AliveColor.ink)
+            Text("浅色与深色自动切换")
+                .font(AliveFont.sans(12, relativeTo: .caption))
+                .foregroundStyle(AliveColor.inkTertiary)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+    }
 
     private var liveActivitySection: some View {
         settingsSection("实时活动") {
@@ -123,13 +134,13 @@ struct SettingsView: View {
                     systemImage: activitySystemImage,
                     accessibilityHint: liveActivityDisabled
                         ? "当前周期尚未开始，或系统不允许实时活动。"
-                        : "单次最长约 8 小时，跨午夜或到发薪日后会过期。"
+                        : "开启后可在锁屏与灵动岛查看今日预算摘要。"
                 ) {
                     Task { await model.toggleLiveActivity() }
                 }
                 .disabled(liveActivityDisabled)
 
-                Text("单次最长约 8 小时，不自动续期。跨午夜后标记为过期，可以重新开启；日常查看请直接使用 App 主屏。")
+                Text("单次最长约 8 小时，不自动续期；跨午夜或到发薪日后过期。日常查看请使用 App 主屏。")
                     .font(AliveFont.sans(12, relativeTo: .caption))
                     .lineSpacing(5)
                     .foregroundStyle(AliveColor.inkTertiary)
@@ -161,7 +172,7 @@ struct SettingsView: View {
             cycleInfoRow("发薪日", AliveDateText.fullDay(snapshot.payday))
             Rectangle().fill(AliveColor.separator).frame(height: 0.5)
             cycleInfoRow("当前余额", MoneyFormatter.currency(cents: snapshot.currentBalanceCents))
-            Text("周期开始后日期不可修改。余额可随时在今日主屏调整。")
+            Text("日期在周期开始后锁定；余额可随时在今日主屏调整。")
                 .font(AliveFont.sans(12, relativeTo: .caption))
                 .lineSpacing(4)
                 .foregroundStyle(AliveColor.inkTertiary)
@@ -291,14 +302,19 @@ struct SettingsView: View {
     private var privacySection: some View {
         settingsSection("隐私与关于") {
             VStack(alignment: .leading, spacing: AliveSpace.x2) {
-                Text("数据仅保存在本机。")
-                    .font(AliveFont.sans(14, weight: .medium, relativeTo: .subheadline))
-                    .foregroundStyle(AliveColor.ink)
-                Text("金额、日期与支出记录保存在本机 App 安全容器中，不接入网络、分析、广告或第三方 SDK。")
-                    .font(AliveFont.sans(12, relativeTo: .caption))
-                    .lineSpacing(5)
-                    .foregroundStyle(AliveColor.inkTertiary)
-                    .fixedSize(horizontal: false, vertical: true)
+                HStack(alignment: .top, spacing: AliveSpace.x3) {
+                    settingsGlyph("lock.shield")
+                    VStack(alignment: .leading, spacing: AliveSpace.x1) {
+                        Text("数据仅保存在本机")
+                            .font(AliveFont.sans(14, weight: .semibold, relativeTo: .subheadline))
+                            .foregroundStyle(AliveColor.ink)
+                        Text("金额、日期与支出记录仅保存在本机 App 容器中，不联网，也不接入分析、广告或第三方 SDK。")
+                            .font(AliveFont.sans(12, relativeTo: .caption))
+                            .lineSpacing(5)
+                            .foregroundStyle(AliveColor.inkTertiary)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                }
                 Rectangle().fill(AliveColor.separator).frame(height: 0.5)
                     .padding(.vertical, AliveSpace.x1)
                 HStack {
@@ -311,6 +327,18 @@ struct SettingsView: View {
                 .foregroundStyle(AliveColor.inkTertiary)
             }
         }
+    }
+
+    private func settingsGlyph(_ systemName: String) -> some View {
+        Image(systemName: systemName)
+            .font(.system(size: 16, weight: .semibold))
+            .foregroundStyle(AliveColor.accent)
+            .frame(width: 32, height: 32)
+            .background(
+                AliveColor.accentTint,
+                in: RoundedRectangle(cornerRadius: 9, style: .continuous)
+            )
+            .accessibilityHidden(true)
     }
 
     private func settingsSection<Content: View>(
@@ -360,12 +388,12 @@ struct SettingsView: View {
 
     private var activityButtonTitle: String {
         if model.activity.status == .active {
-            return "结束活动"
+            return "结束实时活动"
         }
         if model.activity.status == .stale {
-            return "重新开启今日实时活动"
+            return "重新开启实时活动"
         }
-        return "开启今日实时活动"
+        return "开启实时活动"
     }
 
     private var activitySystemImage: String {

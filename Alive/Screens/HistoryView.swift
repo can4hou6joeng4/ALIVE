@@ -18,39 +18,47 @@ struct HistoryView: View {
             .sorted { $0.day > $1.day }
     }
 
+    private var currentCycleTotalCents: Int {
+        model.currentExpenses.reduce(0) { $0 + $1.amountCents }
+    }
+
+    private var canAddExpense: Bool {
+        model.snapshot.map { $0.phase != .pending } ?? false
+    }
+
     var body: some View {
         List {
-                currentCycleSummary
+            currentCycleSummary
 
-                if model.currentExpenses.isEmpty {
-                    emptyState
-                } else {
-                    ForEach(currentGroups, id: \.day) { group in
-                        Section {
-                            ForEach(group.expenses) { expense in
-                                expenseRow(expense, editable: true)
-                            }
-                        } header: {
-                            dayHeader(group.day)
-                        }
-                    }
-                }
-
-                if !model.archivedCycles.isEmpty {
+            if model.currentExpenses.isEmpty {
+                emptyState
+            } else {
+                ForEach(currentGroups, id: \.day) { group in
                     Section {
-                        ForEach(model.archivedCycles) { cycle in
-                            archivedCycle(cycle)
+                        ForEach(group.expenses) { expense in
+                            expenseRow(expense, editable: true)
                         }
                     } header: {
-                        sectionHeader("已归档周期")
+                        dayHeader(group.day)
                     }
                 }
             }
-            .listStyle(.plain)
-            .scrollContentBackground(.hidden)
-            .environment(\.defaultMinListRowHeight, 44)
-            .scrollEdgeEffectStyle(.soft, for: .top)
-            .background(AliveColor.canvas)
+
+            if !model.archivedCycles.isEmpty {
+                Section {
+                    ForEach(model.archivedCycles) { cycle in
+                        archivedCycle(cycle)
+                    }
+                } header: {
+                    sectionHeader("已归档周期")
+                }
+            }
+        }
+        .listStyle(.plain)
+        .scrollContentBackground(.hidden)
+        .environment(\.defaultMinListRowHeight, 44)
+        .scrollEdgeEffectStyle(.soft, for: .top)
+        .background(AliveColor.canvas)
         .navigationTitle("本周期记录")
         .navigationBarTitleDisplayMode(.inline)
         .alert(
@@ -76,31 +84,176 @@ struct HistoryView: View {
     @ViewBuilder
     private var currentCycleSummary: some View {
         if let snapshot = model.snapshot {
-            VStack(alignment: .leading, spacing: AliveSpace.x2) {
-                Text(AliveDateText.range(snapshot.startDate, snapshot.payday))
-                    .font(AliveFont.sans(12, weight: .semibold, relativeTo: .caption))
-                    .tracking(1.2)
-                    .foregroundStyle(AliveColor.inkTertiary)
-                Text("已记录 \(model.currentExpenses.count) 笔 · 合计 \(MoneyFormatter.currency(cents: model.currentExpenses.reduce(0) { $0 + $1.amountCents }))")
-                    .font(AliveFont.sans(16, weight: .semibold, relativeTo: .body))
-                    .foregroundStyle(AliveColor.ink)
-            }
-            .padding(.vertical, AliveSpace.x2)
-            .listRowBackground(Color.clear)
-            .listRowSeparator(.hidden)
+            cycleSummaryCard(snapshot)
+                .listRowInsets(
+                    EdgeInsets(
+                        top: AliveSpace.x3,
+                        leading: AliveSpace.pageInset,
+                        bottom: AliveSpace.x2,
+                        trailing: AliveSpace.pageInset
+                    )
+                )
+                .listRowBackground(Color.clear)
+                .listRowSeparator(.hidden)
         }
     }
 
-    private var emptyState: some View {
-        VStack(alignment: .leading, spacing: AliveSpace.x2) {
-            Text("还没有记录。")
-                .font(AliveFont.sans(17, weight: .semibold, relativeTo: .body))
-                .foregroundStyle(AliveColor.ink)
-            Text("今天的第一笔，会让预算更准确。")
-                .font(AliveFont.sans(14, relativeTo: .subheadline))
-                .foregroundStyle(AliveColor.inkTertiary)
+    private func cycleSummaryCard(_ snapshot: BudgetSnapshot) -> some View {
+        SurfaceCard {
+            VStack(alignment: .leading, spacing: AliveSpace.x4) {
+                cycleSummaryHeader
+
+                VStack(alignment: .leading, spacing: AliveSpace.x1) {
+                    Text("本周期已花")
+                        .font(AliveFont.sans(12, weight: .medium, relativeTo: .caption))
+                        .foregroundStyle(AliveColor.inkTertiary)
+                    Text(MoneyFormatter.currency(cents: currentCycleTotalCents))
+                        .font(AliveFont.display(34, relativeTo: .title2))
+                        .monospacedDigit()
+                        .foregroundStyle(AliveColor.ink)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.55)
+                        .fixedSize(horizontal: false, vertical: true)
+                        .accessibilityLabel(
+                            "本周期已花 \(MoneyFormatter.spoken(cents: Decimal(currentCycleTotalCents)))"
+                        )
+                }
+
+                Rectangle()
+                    .fill(AliveColor.separator)
+                    .frame(height: 0.5)
+
+                cycleSummaryMetrics(snapshot)
+            }
         }
-        .padding(.vertical, AliveSpace.x4)
+    }
+
+    @ViewBuilder
+    private var cycleSummaryHeader: some View {
+        let rangeText = currentCycleRangeText
+        let countText = "\(model.currentExpenses.count) 笔"
+
+        if dynamicTypeSize.isAccessibilitySize {
+            VStack(alignment: .leading, spacing: AliveSpace.x2) {
+                rangeLabel(rangeText)
+                countBadge(countText)
+            }
+        } else {
+            HStack(alignment: .center, spacing: AliveSpace.x3) {
+                rangeLabel(rangeText)
+                Spacer(minLength: AliveSpace.x2)
+                countBadge(countText)
+            }
+        }
+    }
+
+    private var currentCycleRangeText: String {
+        guard let snapshot = model.snapshot else { return "" }
+        return AliveDateText.range(snapshot.startDate, snapshot.payday)
+    }
+
+    private func rangeLabel(_ text: String) -> some View {
+        Text(text)
+            .font(AliveFont.sans(12, weight: .semibold, relativeTo: .caption))
+            .tracking(1.2)
+            .foregroundStyle(AliveColor.inkTertiary)
+            .fixedSize(horizontal: false, vertical: true)
+    }
+
+    private func countBadge(_ text: String) -> some View {
+        Text(text)
+            .font(AliveFont.sans(12, weight: .semibold, relativeTo: .caption))
+            .foregroundStyle(AliveColor.inkSecondary)
+            .padding(.horizontal, AliveSpace.x3)
+            .padding(.vertical, AliveSpace.x1)
+            .background(Capsule().fill(AliveColor.surfaceSunken))
+            .accessibilityLabel("已记录 \(model.currentExpenses.count) 笔")
+    }
+
+    @ViewBuilder
+    private func cycleSummaryMetrics(_ snapshot: BudgetSnapshot) -> some View {
+        if dynamicTypeSize.isAccessibilitySize {
+            VStack(alignment: .leading, spacing: AliveSpace.x3) {
+                cycleMetric(
+                    label: "当前余额",
+                    value: MoneyFormatter.currency(cents: snapshot.currentBalanceCents)
+                )
+                Rectangle()
+                    .fill(AliveColor.separator)
+                    .frame(height: 0.5)
+                cycleMetric(label: "距发薪", value: "\(snapshot.daysRemaining) 天")
+            }
+        } else {
+            HStack(alignment: .top, spacing: AliveSpace.x4) {
+                cycleMetric(
+                    label: "当前余额",
+                    value: MoneyFormatter.currency(cents: snapshot.currentBalanceCents)
+                )
+                Rectangle()
+                    .fill(AliveColor.separator)
+                    .frame(width: 0.5, height: 36)
+                cycleMetric(label: "距发薪", value: "\(snapshot.daysRemaining) 天")
+            }
+        }
+    }
+
+    private func cycleMetric(label: String, value: String) -> some View {
+        VStack(alignment: .leading, spacing: AliveSpace.x1) {
+            Text(label)
+                .font(AliveFont.sans(11, weight: .medium, relativeTo: .caption2))
+                .foregroundStyle(AliveColor.inkTertiary)
+            Text(value)
+                .font(AliveFont.sans(15, weight: .semibold, relativeTo: .subheadline))
+                .monospacedDigit()
+                .foregroundStyle(AliveColor.ink)
+                .lineLimit(1)
+                .minimumScaleFactor(0.75)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .accessibilityElement(children: .combine)
+    }
+
+    private var emptyState: some View {
+        SurfaceCard {
+            VStack(alignment: .leading, spacing: AliveSpace.x4) {
+                HStack(alignment: .top, spacing: AliveSpace.x3) {
+                    Image(systemName: "plus")
+                        .font(.system(size: 16, weight: .semibold))
+                        .foregroundStyle(AliveColor.accent)
+                        .frame(width: 36, height: 36)
+                        .background(
+                            AliveColor.accentTint,
+                            in: RoundedRectangle(cornerRadius: 10, style: .continuous)
+                        )
+                        .accessibilityHidden(true)
+
+                    VStack(alignment: .leading, spacing: AliveSpace.x1) {
+                        Text("还没有记录")
+                            .font(AliveFont.sans(17, weight: .semibold, relativeTo: .body))
+                            .foregroundStyle(AliveColor.ink)
+                        Text("记下第一笔后，这里会按日整理本周期流水。")
+                            .font(AliveFont.sans(14, relativeTo: .subheadline))
+                            .foregroundStyle(AliveColor.inkTertiary)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                }
+
+                if canAddExpense {
+                    PrimaryAction(title: "记一笔", systemImage: "plus") {
+                        model.openQuickExpense()
+                    }
+                    .accessibilityHint("打开快速记账卡片。")
+                }
+            }
+        }
+        .listRowInsets(
+            EdgeInsets(
+                top: AliveSpace.x1,
+                leading: AliveSpace.pageInset,
+                bottom: AliveSpace.x4,
+                trailing: AliveSpace.pageInset
+            )
+        )
         .listRowBackground(Color.clear)
         .listRowSeparator(.hidden)
     }

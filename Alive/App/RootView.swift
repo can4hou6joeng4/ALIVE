@@ -99,40 +99,47 @@ struct RootView: View {
                     }
             }
             .tint(AliveColor.ink)
-            .blur(radius: model.isSettingsPresented ? 2 : 0)
+            .blur(radius: backgroundBlurRadius, opaque: true)
+            .scaleEffect(backgroundScale, anchor: .trailing)
             .accessibilityHidden(model.isSettingsPresented || model.isQuickEntryPresented)
             .allowsHitTesting(!model.isSettingsPresented && !model.isQuickEntryPresented)
             // The quick card sits at the top; the keyboard must not lift the screen behind it.
             .ignoresSafeArea(.keyboard, edges: .bottom)
 
             if model.isQuickEntryPresented {
-                Color.black.opacity(0.24)
-                    .ignoresSafeArea()
-                    .onTapGesture { model.closeQuickEntry() }
-                    .accessibilityHidden(true)
-                    .zIndex(1)
-                    .transition(.opacity)
+                if model.quickEntryPresentation == .liveActivity {
+                    LiveEntryContinuityView(model: model)
+                        .zIndex(2)
+                        .transition(.opacity)
+                } else {
+                    Color.black.opacity(0.28)
+                        .ignoresSafeArea()
+                        .onTapGesture { model.closeQuickEntry() }
+                        .accessibilityHidden(true)
+                        .zIndex(1)
+                        .transition(.opacity)
 
-                GeometryReader { proxy in
-                    // The overlay follows the keyboard safe area, so this stays above
-                    // the decimal pad; at accessibility sizes the card scrolls inside it.
-                    let maxHeight = max(0, proxy.size.height - AliveSpace.x2)
-                    VStack(spacing: 0) {
-                        QuickEntryCard(model: model)
-                            // maxHeight also reserves free space; the card itself
-                            // must stay pinned to the top of that space.
-                            .frame(maxHeight: maxHeight, alignment: .top)
-                        Spacer(minLength: 0)
+                    GeometryReader { proxy in
+                        // The overlay follows the keyboard safe area, so this stays above
+                        // the decimal pad; at accessibility sizes the card scrolls inside it.
+                        let maxHeight = max(0, proxy.size.height - AliveSpace.x2)
+                        VStack(spacing: 0) {
+                            QuickEntryCard(model: model)
+                                // maxHeight also reserves free space; the card itself
+                                // must stay pinned to the top of that space.
+                                .frame(maxHeight: maxHeight, alignment: .top)
+                            Spacer(minLength: 0)
+                        }
+                        .padding(.horizontal, AliveSpace.pageInset)
+                        .padding(.top, AliveSpace.x2)
                     }
-                    .padding(.horizontal, AliveSpace.pageInset)
-                    .padding(.top, AliveSpace.x2)
+                    .zIndex(2)
+                    .transition(.asymmetric(insertion: .identity, removal: quickEntryRemoval))
                 }
-                .zIndex(2)
-                .transition(.asymmetric(insertion: .identity, removal: quickEntryRemoval))
             }
 
             if model.isSettingsPresented {
-                Color.black.opacity(0.42)
+                Color.black.opacity(0.5)
                     .ignoresSafeArea()
                     .onTapGesture { model.closeSettings() }
                     .accessibilityHidden(true)
@@ -141,7 +148,7 @@ struct RootView: View {
 
                 SettingsDrawer(model: model)
                     .zIndex(4)
-                    .transition(.move(edge: .leading))
+                    .transition(settingsDrawerTransition)
             }
         }
         .animation(reduceMotion ? nil : AliveMotion.enter, value: model.isSettingsPresented)
@@ -158,6 +165,29 @@ struct RootView: View {
                 BalanceSheet(model: model)
             }
         }
+    }
+
+    private var backgroundBlurRadius: CGFloat {
+        if model.isSettingsPresented { return 4 }
+        if model.isQuickEntryPresented {
+            return model.quickEntryPresentation == .liveActivity ? 0 : 1.5
+        }
+        return 0
+    }
+
+    private var backgroundScale: CGFloat {
+        guard !reduceMotion, model.isSettingsPresented else { return 1 }
+        return 0.985
+    }
+
+    private var settingsDrawerTransition: AnyTransition {
+        if reduceMotion {
+            return .identity
+        }
+        return .asymmetric(
+            insertion: .move(edge: .leading).combined(with: .opacity),
+            removal: .move(edge: .leading).combined(with: .opacity)
+        )
     }
 
     /// The card unfolds itself on insertion (see `QuickEntryCard`); on the way out
@@ -182,20 +212,38 @@ private struct SettingsDrawer: View {
             let width = dynamicTypeSize.isAccessibilitySize
                 ? proxy.size.width
                 : min(proxy.size.width * 0.86, 360)
+            let isFullWidth = dynamicTypeSize.isAccessibilitySize
+                || width >= proxy.size.width - 0.5
+            let shape = UnevenRoundedRectangle(
+                bottomTrailingRadius: isFullWidth ? 0 : 24,
+                topTrailingRadius: 0,
+                style: .continuous
+            )
 
             ZStack(alignment: .leading) {
-                AliveColor.canvas
+                shape
+                    .fill(AliveColor.canvas)
                     .frame(width: width)
                     .frame(maxHeight: .infinity)
                     .ignoresSafeArea(edges: [.top, .bottom])
-                    .clipShape(
-                        UnevenRoundedRectangle(
-                            bottomTrailingRadius: 24,
-                            topTrailingRadius: 0,
-                            style: .continuous
-                        )
+                    .overlay(alignment: .trailing) {
+                        if !isFullWidth {
+                            Rectangle()
+                                .fill(AliveColor.separator)
+                                .frame(width: 0.5)
+                        }
+                    }
+                    .clipShape(shape)
+                    .shadow(
+                        color: .black.opacity(isFullWidth ? 0 : 0.12),
+                        radius: 2,
+                        x: 1
                     )
-                    .shadow(color: .black.opacity(0.18), radius: 24, x: 8)
+                    .shadow(
+                        color: .black.opacity(isFullWidth ? 0 : 0.2),
+                        radius: 28,
+                        x: 10
+                    )
                     .offset(x: dragOffset)
 
                 VStack(spacing: 0) {
