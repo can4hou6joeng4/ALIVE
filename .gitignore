@@ -13,6 +13,9 @@ xcuserdata/
 *.xcresult
 .swiftpm/
 
+# Local delivery artifacts (never stage, commit or push)
+/artifacts/
+
 # Local credentials and environment
 .env
 .env.*
