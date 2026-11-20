@@ -83,7 +83,8 @@ final class BudgetActivityController {
         }
         if activity.activityState == .active, snapshot.phase != .pending {
             let staleDate = activity.content.staleDate ?? Date().addingTimeInterval(LiveActivityWindow.maximumDuration)
-            await activity.update(content(for: snapshot, staleDate: staleDate))
+            let liveEntry = activity.content.state.liveEntry
+            await activity.update(content(for: snapshot, staleDate: staleDate, liveEntry: liveEntry))
         }
         updateStatus(for: activity)
     }
@@ -104,7 +105,8 @@ final class BudgetActivityController {
                 let freshWindow = LiveActivityWindow.calculate(snapshot: snapshot, openedAt: now)
                 let existingStaleDate = activity.content.staleDate ?? freshWindow.staleDate
                 let staleDate = max(existingStaleDate, freshWindow.staleDate)
-                await activity.update(content(for: snapshot, staleDate: staleDate))
+                let liveEntry = activity.content.state.liveEntry
+                await activity.update(content(for: snapshot, staleDate: staleDate, liveEntry: liveEntry))
                 self.activity = activity
                 status = .active
                 return
@@ -127,7 +129,11 @@ final class BudgetActivityController {
         do {
             let newActivity = try Activity.request(
                 attributes: attributes,
-                content: content(for: snapshot, staleDate: window.staleDate),
+                content: content(
+                    for: snapshot,
+                    staleDate: window.staleDate,
+                    liveEntry: LiveEntryState(step: .amount)
+                ),
                 pushType: nil
             )
             activity = newActivity
@@ -150,7 +156,8 @@ final class BudgetActivityController {
         }
         let staleDate = activity.content.staleDate
             ?? Date().addingTimeInterval(LiveActivityWindow.maximumDuration)
-        await activity.update(content(for: snapshot, staleDate: staleDate))
+        let liveEntry = activity.content.state.liveEntry
+        await activity.update(content(for: snapshot, staleDate: staleDate, liveEntry: liveEntry))
         updateStatus(for: activity)
     }
 
@@ -164,7 +171,8 @@ final class BudgetActivityController {
 
     private func content(
         for snapshot: BudgetSnapshot,
-        staleDate: Date
+        staleDate: Date,
+        liveEntry: LiveEntryState?
     ) -> ActivityContent<BudgetActivityAttributes.ContentState> {
         ActivityContent(
             state: BudgetActivityAttributes.ContentState(
@@ -172,7 +180,8 @@ final class BudgetActivityController {
                 currentBalanceCents: snapshot.currentBalanceCents,
                 daysRemaining: snapshot.daysRemaining,
                 phase: snapshot.phase,
-                updatedAt: snapshot.generatedAt
+                updatedAt: snapshot.generatedAt,
+                liveEntry: liveEntry
             ),
             staleDate: staleDate
         )

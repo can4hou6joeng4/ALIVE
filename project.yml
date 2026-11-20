@@ -42,6 +42,7 @@ targets:
     platform: iOS
     sources:
       - path: Alive
+      - path: Shared/LiveActivity/LiveEntryIntents.swift
       - path: Alive/Resources/PrivacyInfo.xcprivacy
         buildPhase: resources
     dependencies:
@@ -81,6 +82,7 @@ targets:
     platform: iOS
     sources:
       - path: AliveWidgets
+      - path: Shared/LiveActivity/LiveEntryIntents.swift
     dependencies:
       - target: AliveCore
         embed: false

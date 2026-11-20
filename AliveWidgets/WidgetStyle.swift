@@ -53,6 +53,14 @@ enum WidgetColor {
         Color.white.opacity(0.66)
     }
 
+    static var islandInkSecondary: Color {
+        Color.white.opacity(0.82)
+    }
+
+    static var islandActionFill: Color {
+        Color(red: 138 / 255, green: 197 / 255, blue: 255 / 255)
+    }
+
     static var islandOverspend: Color {
         Color(red: 1, green: 154 / 255, blue: 138 / 255)
     }

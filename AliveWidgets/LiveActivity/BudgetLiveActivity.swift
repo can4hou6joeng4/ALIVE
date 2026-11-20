@@ -1,6 +1,6 @@
 import ActivityKit
-import AliveCore
 import AppIntents
+import AliveCore
 import SwiftUI
 import WidgetKit
 
@@ -10,77 +10,59 @@ struct BudgetLiveActivityWidget: Widget {
             LockScreenActivityView(context: context)
         } dynamicIsland: { context in
             let state = context.state.displayState
+            let cycleID = context.attributes.cycleID.uuidString
             return DynamicIsland {
-                DynamicIslandExpandedRegion(.leading) {
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text("ALIVE")
-                            .font(WidgetFont.sans(9, weight: .semibold, relativeTo: .caption2))
-                            .tracking(1.6)
-                            .foregroundStyle(WidgetColor.accentHighlight)
-                        Text("今天")
-                            .font(WidgetFont.sans(10, weight: .medium, relativeTo: .caption2))
-                            .foregroundStyle(WidgetColor.islandInkMuted)
-                    }
-                }
-
-                DynamicIslandExpandedRegion(.trailing) {
-                    VStack(alignment: .trailing, spacing: 1) {
-                        Text("\(context.state.daysRemaining) 天")
-                            .font(WidgetFont.display(18, relativeTo: .title3))
-                            .monospacedDigit()
-                            .foregroundStyle(WidgetColor.islandInk)
-                        Text("距发薪")
-                            .font(WidgetFont.sans(9, weight: .medium, relativeTo: .caption2))
-                            .foregroundStyle(WidgetColor.islandInkMuted)
-                    }
-                }
-
                 DynamicIslandExpandedRegion(.bottom) {
-                    VStack(spacing: 10) {
-                        HStack(alignment: .firstTextBaseline, spacing: 12) {
-                            VStack(alignment: .leading, spacing: 2) {
+                    if let liveEntry = context.state.liveEntry {
+                        LiveEntryIslandCard(cycleID: cycleID, liveEntry: liveEntry)
+                    } else {
+                        HStack(spacing: IslandEntryMetrics.amountPanelSpacing) {
+                            VStack(alignment: .leading, spacing: IslandEntryMetrics.sectionSpacing) {
                                 Text(state.label)
-                                    .font(WidgetFont.sans(9, weight: .semibold, relativeTo: .caption2))
-                                    .foregroundStyle(islandLabelColor(for: state))
-                                    .lineLimit(1)
-                                    .minimumScaleFactor(0.8)
-                                Text(islandAmountText(for: state))
-                                    .font(WidgetFont.display(28, relativeTo: .title2))
+                                    .font(WidgetFont.sans(10, weight: .semibold))
+                                    .foregroundStyle(WidgetColor.islandInkSecondary)
+                                Text(MoneyFormatter.currency(cents: state.amountCents))
+                                    .font(WidgetFont.display(22))
                                     .monospacedDigit()
                                     .foregroundStyle(islandAmountColor(for: state))
                                     .lineLimit(1)
                                     .minimumScaleFactor(0.55)
                             }
-                            Spacer(minLength: 8)
-                            VStack(alignment: .trailing, spacing: 2) {
-                                Text("余额")
-                                    .font(WidgetFont.sans(9, weight: .medium, relativeTo: .caption2))
-                                    .foregroundStyle(WidgetColor.islandInkMuted)
-                                Text(MoneyFormatter.currency(cents: context.state.currentBalanceCents))
-                                    .font(WidgetFont.sans(11, weight: .semibold, relativeTo: .caption))
-                                    .monospacedDigit()
+                            Spacer(minLength: 0)
+                            Button(intent: BeginLiveEntryIntent(cycleID: cycleID)) {
+                                Text("记一笔")
+                                    .font(WidgetFont.sans(13, weight: .semibold))
                                     .foregroundStyle(WidgetColor.islandInk)
-                                    .lineLimit(1)
-                                    .minimumScaleFactor(0.75)
+                                    .padding(.horizontal, 16)
+                                    .frame(height: IslandEntryMetrics.noteTagHeight)
+                                    .background(WidgetColor.islandInk.opacity(0.14), in: Capsule())
                             }
+                            .buttonStyle(IslandControlButtonStyle())
+                            .accessibilityIdentifier("live-entry-begin")
                         }
-
-                        HStack(spacing: 8) {
-                            activityButton("记一笔", intent: OpenQuickEntryIntent(), isProminent: true)
-                            activityButton("调余额", intent: OpenBalanceIntent(), isProminent: false)
-                        }
+                        .padding(.horizontal, IslandEntryMetrics.horizontalInset)
+                        .padding(.bottom, IslandEntryMetrics.bottomSafetyInset)
+                        .accessibilityElement(children: .contain)
+                        .accessibilityIdentifier("live-entry-summary")
                     }
                 }
             } compactLeading: {
-                MiniBarsMark(tint: islandAccentColor(for: state))
+                AliveMonogram(tint: islandAccentColor(for: state))
+                    .padding(.leading, 1)
+                    .widgetURL(AppRoute.today.url)
+                    .accessibilityHint("打开 ALIVE 今日主屏")
             } compactTrailing: {
                 Text(compactTrailingText(for: state))
-                    .font(WidgetFont.display(14, relativeTo: .body))
+                    .font(WidgetFont.display(13, relativeTo: .body))
                     .monospacedDigit()
                     .foregroundStyle(islandAmountColor(for: state))
                     .lineLimit(1)
-                    .minimumScaleFactor(0.55)
+                    .minimumScaleFactor(0.62)
+                    .padding(.trailing, 1)
+                    .contentTransition(.numericText())
                     .accessibilityLabel(activityAccessibilityText(context.state))
+                    .widgetURL(AppRoute.today.url)
+                    .accessibilityHint("打开 ALIVE 今日主屏")
             } minimal: {
                 Text(minimalText(for: state))
                     .font(WidgetFont.display(12, relativeTo: .caption))
@@ -89,35 +71,13 @@ struct BudgetLiveActivityWidget: Widget {
                     .lineLimit(1)
                     .minimumScaleFactor(0.45)
                     .accessibilityLabel(activityAccessibilityText(context.state))
+                    .widgetURL(AppRoute.today.url)
+                    .accessibilityHint("打开 ALIVE 今日主屏")
             }
+            .contentMargins(.top, 0, for: .expanded)
+            .contentMargins(.bottom, IslandEntryMetrics.expandedBottomMargin, for: .expanded)
             .keylineTint(WidgetColor.accentHighlight)
-            .widgetURL(AppRoute.today.url)
         }
-    }
-
-    private func activityButton(
-        _ title: String,
-        intent: some AppIntent,
-        isProminent: Bool
-    ) -> some View {
-        Button(intent: intent) {
-            Text(title)
-                .font(WidgetFont.sans(11, weight: .semibold, relativeTo: .body))
-                .foregroundStyle(isProminent ? Color.black : WidgetColor.islandInk)
-                .frame(maxWidth: .infinity)
-                .frame(minHeight: 44)
-                .background(
-                    Capsule().fill(
-                        isProminent ? WidgetColor.islandInk : WidgetColor.islandInk.opacity(0.14)
-                    )
-                )
-                .contentShape(Capsule())
-        }
-        .buttonStyle(.plain)
-    }
-
-    private func islandLabelColor(for state: BudgetDisplayState) -> Color {
-        state.isOverspent ? WidgetColor.islandOverspend : WidgetColor.islandInkMuted
     }
 
     private func islandAmountColor(for state: BudgetDisplayState) -> Color {
@@ -126,10 +86,6 @@ struct BudgetLiveActivityWidget: Widget {
 
     private func islandAccentColor(for state: BudgetDisplayState) -> Color {
         state.isOverspent ? WidgetColor.islandOverspend : WidgetColor.accentHighlight
-    }
-
-    private func islandAmountText(for state: BudgetDisplayState) -> String {
-        state.isZeroBalance ? "—" : WidgetAmount.standard(cents: state.amountCents)
     }
 
     private func compactTrailingText(for state: BudgetDisplayState) -> String {
@@ -231,33 +187,36 @@ private struct LockScreenActivityView: View {
 
                 Spacer(minLength: 8)
 
-                VStack(alignment: .trailing, spacing: 8) {
-                    HStack(alignment: .firstTextBaseline, spacing: 3) {
-                        Text("余额")
-                            .font(WidgetFont.sans(9, weight: .medium))
-                            .foregroundStyle(.secondary)
-                        Text(MoneyFormatter.currency(cents: context.state.currentBalanceCents))
-                            .font(WidgetFont.sans(10, weight: .semibold))
-                            .foregroundStyle(.secondary)
-                            .monospacedDigit()
-                            .lineLimit(1)
-                            .minimumScaleFactor(0.7)
-                    }
-
-                    Button(intent: OpenQuickEntryIntent()) {
-                        Text("记一笔")
-                            .font(WidgetFont.sans(11, weight: .semibold))
-                            .foregroundStyle(Color.primary)
-                            .padding(.horizontal, 14)
-                            .frame(minHeight: 44)
-                            .background(Capsule().fill(WidgetColor.accent.opacity(0.16)))
-                            .contentShape(Capsule())
-                    }
-                    .buttonStyle(.plain)
+                HStack(alignment: .firstTextBaseline, spacing: 3) {
+                    Text("余额")
+                        .font(WidgetFont.sans(9, weight: .medium))
+                        .foregroundStyle(.secondary)
+                    Text(MoneyFormatter.currency(cents: context.state.currentBalanceCents))
+                        .font(WidgetFont.sans(10, weight: .semibold))
+                        .foregroundStyle(.secondary)
+                        .monospacedDigit()
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.7)
                 }
             }
+
+            HStack(spacing: 6) {
+                Image(systemName: "hand.tap")
+                    .accessibilityHidden(true)
+                Text("轻点整张卡片，记一笔")
+                Spacer(minLength: 4)
+                Image(systemName: "chevron.right")
+                    .accessibilityHidden(true)
+            }
+            .font(WidgetFont.sans(11, weight: .semibold))
+            .foregroundStyle(WidgetColor.accent)
+            .frame(minHeight: 20)
         }
         .padding(16)
+        .contentShape(Rectangle())
+        .accessibilityElement(children: .combine)
+        .accessibilityHint("轻点整张卡片打开快速记账")
+        .widgetURL(AppRoute.liveEntry.url)
     }
 
     private var lockScreenAmountText: String {
@@ -265,16 +224,44 @@ private struct LockScreenActivityView: View {
     }
 }
 
-private struct MiniBarsMark: View {
+private struct AliveMonogram: View {
     let tint: Color
 
     var body: some View {
-        HStack(alignment: .bottom, spacing: 2) {
-            Capsule().fill(tint).frame(width: 3, height: 7)
-            Capsule().fill(tint).frame(width: 3, height: 13)
-            Capsule().fill(tint).frame(width: 3, height: 10)
-        }
-        .frame(width: 13, height: 14)
-        .accessibilityHidden(true)
+        AliveMonogramShape()
+            .stroke(
+                tint,
+                style: StrokeStyle(lineWidth: 1.8, lineCap: .round, lineJoin: .round)
+            )
+            .frame(width: 14, height: 14)
+            .accessibilityHidden(true)
+    }
+}
+
+private struct AliveMonogramShape: Shape {
+    func path(in rect: CGRect) -> Path {
+        var path = Path()
+        let left = rect.minX + rect.width * 0.10
+        let right = rect.maxX - rect.width * 0.10
+        let bottom = rect.maxY - rect.height * 0.08
+        let apexY = rect.minY + rect.height * 0.10
+
+        path.move(to: CGPoint(x: left, y: bottom))
+        path.addLine(to: CGPoint(x: rect.midX, y: apexY))
+        path.addLine(to: CGPoint(x: right, y: bottom))
+
+        path.move(
+            to: CGPoint(
+                x: rect.minX + rect.width * 0.27,
+                y: rect.minY + rect.height * 0.62
+            )
+        )
+        path.addLine(
+            to: CGPoint(
+                x: rect.maxX - rect.width * 0.27,
+                y: rect.minY + rect.height * 0.62
+            )
+        )
+        return path
     }
 }
