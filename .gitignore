@@ -16,6 +16,13 @@ xcuserdata/
 # Local delivery artifacts (never stage, commit or push)
 /artifacts/
 
+# Internal workspace & agent docs (local-only)
+AGENTS.md
+AGENT.md
+CLAUDE.md
+DESIGN.md
+PRD.md
+
 # Local credentials and environment
 .env
 .env.*

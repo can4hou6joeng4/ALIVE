@@ -73,10 +73,7 @@ ALIVE/
 ├── AliveTests/            # Swift Testing suite (42 unit tests across 3 suites)
 ├── Shared/                # Cross-target LiveActivityIntent definitions
 ├── docs/screenshots/      # App screenshots for documentation
-├── project.yml            # XcodeGen specification
-├── PRD.md                 # Product Requirements Document (Source of Truth)
-├── DESIGN.md              # Interaction, visual, and technical design specification
-└── AGENTS.md              # Engineering constraints and verification checklist
+└── project.yml            # XcodeGen specification
 ```
 
 ---
@@ -117,11 +114,3 @@ xcodebuild -project ALIVE.xcodeproj -scheme Alive \
 - **100% On-Device**: All financial amounts, paydays, and expense records stay strictly inside the app's local SwiftData sandbox (`Library/Application Support/ALIVE/Database/Alive.store`).
 - **Zero Telemetry**: No accounts, no cloud sync, no network requests, no analytics, and no third-party SDKs.
 - **No App Group**: Live Activity state is pushed read-only via `ActivityContent`, while Dynamic Island intents execute directly in the App process.
-
----
-
-## Documentation
-
-- [Product Requirements Document (PRD.md)](PRD.md)
-- [Design & Architecture Specification (DESIGN.md)](DESIGN.md)
-- [Engineering & Verification Guide (AGENTS.md)](AGENTS.md)

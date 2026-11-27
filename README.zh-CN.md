@@ -73,10 +73,7 @@ ALIVE/
 ├── AliveTests/            # Swift Testing 测试集（3 个 suite，共 42 个单元测试）
 ├── Shared/                # 跨进程共享意图定义（LiveActivityIntent）
 ├── docs/screenshots/      # README 展示用应用内截图
-├── project.yml            # XcodeGen 工程配置源
-├── PRD.md                 # 产品需求文档（唯一产品事实源）
-├── DESIGN.md              # 交互、视觉与技术架构设计基线
-└── AGENTS.md              # 仓库协作与工程验证规范
+└── project.yml            # XcodeGen 工程配置源
 ```
 
 ---
@@ -117,11 +114,3 @@ xcodebuild -project ALIVE.xcodeproj -scheme Alive \
 - **纯本地沙盒**：金额、发薪日与支出记录仅保存在本机 SwiftData 数据库（`Library/Application Support/ALIVE/Database/Alive.store`）。
 - **零遥测与零联网**：无账号体系、无云同步、无网络请求、无分析埋点或任何第三方 SDK。
 - **无 App Group**：Live Activity 仅消费 App 通过 `ActivityContent` 下发的只读状态，岛内动作直接由系统在 App 进程执行。
-
----
-
-## 相关文档
-
-- [产品需求文档（PRD.md）](PRD.md)
-- [设计与架构文档（DESIGN.md）](DESIGN.md)
-- [工程约束与验证清单（AGENTS.md）](AGENTS.md)
