@@ -28,6 +28,14 @@
 | :---: | :---: | :---: | :---: | :---: |
 | <img src="docs/screenshots/today-light.png" width="170" alt="Today Light" /> | <img src="docs/screenshots/today-dark.png" width="170" alt="Today Dark" /> | <img src="docs/screenshots/quick-entry.png" width="170" alt="Quick Entry" /> | <img src="docs/screenshots/history.png" width="170" alt="Cycle History" /> | <img src="docs/screenshots/settings.png" width="170" alt="Settings Drawer" /> |
 
+### Dynamic Island Quick Entry (2-Step In-Island Logging)
+
+Long-press the Dynamic Island from anywhere on your iPhone to log an expense in under 2 seconds—without even opening the app. Built with a custom **Micro-Bento** keypad layout and idempotent `LiveActivityIntent` writes:
+
+| 1. Enter Amount (Micro-Bento 0–9 Keypad) | 2. One-Tap Note Tag (Instant Save) |
+| :---: | :---: |
+| <img src="docs/screenshots/island-amount.png" width="320" alt="Dynamic Island Amount Keypad" /> | <img src="docs/screenshots/island-note.png" width="320" alt="Dynamic Island Note Tags" /> |
+
 ---
 
 ## Key Features

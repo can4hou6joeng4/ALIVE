@@ -28,6 +28,14 @@
 | :---: | :---: | :---: | :---: | :---: |
 | <img src="docs/screenshots/today-light.png" width="170" alt="今日主屏浅色" /> | <img src="docs/screenshots/today-dark.png" width="170" alt="今日主屏深色" /> | <img src="docs/screenshots/quick-entry.png" width="170" alt="快速记账卡片" /> | <img src="docs/screenshots/history.png" width="170" alt="本周期记录" /> | <img src="docs/screenshots/settings.png" width="170" alt="设置抽屉" /> |
 
+### 灵动岛极速记账（无需打开 App）
+
+在任意界面长按灵动岛，即可通过 **Micro-Bento 岛内两步交互** 在 2 秒内完成记账；所有动作由 `LiveActivityIntent` 直接在 App 进程幂等写入，无需 App Group：
+
+| 1. 岛内 Micro-Bento 整数键盘 | 2. 点选标签即刻保存 |
+| :---: | :---: |
+| <img src="docs/screenshots/island-amount.png" width="320" alt="灵动岛金额输入" /> | <img src="docs/screenshots/island-note.png" width="320" alt="灵动岛标签直存" /> |
+
 ---
 
 ## 核心特性
