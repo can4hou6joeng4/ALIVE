@@ -22,6 +22,14 @@
 
 ---
 
+## Interactive Demos
+
+| In-App Quick Entry & Real-Time Recalculation | Dynamic Island 2-Step Logging |
+| :---: | :---: |
+| <img src="docs/screenshots/demo-app-entry.gif" width="240" alt="In-App Quick Entry Demo" /> | <img src="docs/screenshots/demo-dynamic-island.gif" width="380" alt="Dynamic Island Demo" /> |
+
+---
+
 ## Screenshots
 
 | Today (Light) | Today (Dark) | Quick Entry | Cycle History | Settings Drawer |

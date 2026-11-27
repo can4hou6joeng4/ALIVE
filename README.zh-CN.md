@@ -22,6 +22,14 @@
 
 ---
 
+## 动态演示
+
+| App 内快速记账与额度实时重算 | 灵动岛长按两步极速记账 |
+| :---: | :---: |
+| <img src="docs/screenshots/demo-app-entry.gif" width="240" alt="App 内快速记账动图" /> | <img src="docs/screenshots/demo-dynamic-island.gif" width="380" alt="灵动岛两步记账动图" /> |
+
+---
+
 ## 应用截图
 
 | 今日主屏（浅色） | 今日主屏（深色） | 快速记账卡片 | 本周期记录 | 设置抽屉 |
