@@ -7,10 +7,6 @@ enum WidgetColor {
         dynamic(light: 0xF2F2F7, dark: 0x000000)
     }
 
-    static var card: Color {
-        dynamic(light: 0xF4F1EA, dark: 0x10163A)
-    }
-
     static var ink: Color {
         dynamic(light: 0x000000, dark: 0xFFFFFF)
     }

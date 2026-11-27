@@ -6,10 +6,6 @@ enum AliveColor {
         dynamic(light: 0xF2F2F7, dark: 0x000000)
     }
 
-    static var surface: Color {
-        dynamic(light: 0xFFFFFF, dark: 0x1C1C1E)
-    }
-
     static var card: Color {
         dynamic(light: 0xFFFFFF, dark: 0x1C1C1E)
     }
@@ -63,10 +59,6 @@ enum AliveColor {
     }
 
     static var progress: Color {
-        accent
-    }
-
-    static var focus: Color {
         accent
     }
 

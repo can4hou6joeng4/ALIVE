@@ -214,59 +214,21 @@ struct SettingsView: View {
                 Rectangle().fill(AliveColor.separator).frame(height: 0.5)
             }
 
-            if dynamicTypeSize.isAccessibilitySize {
-                VStack(alignment: .leading, spacing: AliveSpace.x1) {
-                    Text("起始日")
-                        .font(AliveFont.sans(14, weight: .medium, relativeTo: .subheadline))
-                        .foregroundStyle(AliveColor.inkSecondary)
-                    DatePicker("起始日", selection: $pendingStartDate, displayedComponents: .date)
-                        .labelsHidden()
-                        .tint(AliveColor.ink)
-                        .dynamicTypeSize(...DynamicTypeSize.aliveControlLimit)
-                        .accessibilityLabel("起始日")
-                }
-                .frame(minHeight: 44, alignment: .leading)
+            AdaptiveDatePickerRow(
+                title: "起始日",
+                selection: $pendingStartDate,
+                horizontalPadding: 0,
+                verticalPadding: AliveSpace.x1
+            )
 
-                Rectangle().fill(AliveColor.separator).frame(height: 0.5)
+            Rectangle().fill(AliveColor.separator).frame(height: 0.5)
 
-                VStack(alignment: .leading, spacing: AliveSpace.x1) {
-                    Text("发薪日")
-                        .font(AliveFont.sans(14, weight: .medium, relativeTo: .subheadline))
-                        .foregroundStyle(AliveColor.inkSecondary)
-                    DatePicker("发薪日", selection: $pendingPayday, displayedComponents: .date)
-                        .labelsHidden()
-                        .tint(AliveColor.ink)
-                        .dynamicTypeSize(...DynamicTypeSize.aliveControlLimit)
-                        .accessibilityLabel("发薪日")
-                }
-                .frame(minHeight: 44, alignment: .leading)
-            } else {
-                HStack {
-                    Text("起始日")
-                        .font(AliveFont.sans(14, weight: .medium, relativeTo: .subheadline))
-                        .foregroundStyle(AliveColor.inkSecondary)
-                    Spacer(minLength: AliveSpace.x2)
-                    DatePicker("起始日", selection: $pendingStartDate, displayedComponents: .date)
-                        .labelsHidden()
-                        .tint(AliveColor.ink)
-                        .accessibilityLabel("起始日")
-                }
-                .frame(minHeight: 44)
-
-                Rectangle().fill(AliveColor.separator).frame(height: 0.5)
-
-                HStack {
-                    Text("发薪日")
-                        .font(AliveFont.sans(14, weight: .medium, relativeTo: .subheadline))
-                        .foregroundStyle(AliveColor.inkSecondary)
-                    Spacer(minLength: AliveSpace.x2)
-                    DatePicker("发薪日", selection: $pendingPayday, displayedComponents: .date)
-                        .labelsHidden()
-                        .tint(AliveColor.ink)
-                        .accessibilityLabel("发薪日")
-                }
-                .frame(minHeight: 44)
-            }
+            AdaptiveDatePickerRow(
+                title: "发薪日",
+                selection: $pendingPayday,
+                horizontalPadding: 0,
+                verticalPadding: AliveSpace.x1
+            )
 
             InlineError(
                 message: cycleError ?? pendingBalanceValidation

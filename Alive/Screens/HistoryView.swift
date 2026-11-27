@@ -108,7 +108,7 @@ struct HistoryView: View {
                         .font(AliveFont.sans(12, weight: .medium, relativeTo: .caption))
                         .foregroundStyle(AliveColor.inkTertiary)
                     Text(MoneyFormatter.currency(cents: currentCycleTotalCents))
-                        .font(AliveFont.display(34, relativeTo: .title2))
+                        .font(AliveFont.display(36, relativeTo: .title2))
                         .monospacedDigit()
                         .foregroundStyle(AliveColor.ink)
                         .lineLimit(1)

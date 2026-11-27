@@ -9,11 +9,10 @@ struct WelcomeView: View {
     @ScaledMetric(relativeTo: .largeTitle) private var focusSize: CGFloat = 168
     @State private var cardIsVisible = false
     @State private var progress: CGFloat = 0
+    @State private var dotIsVisible = false
     @State private var brandIsVisible = false
     @State private var taglineIsVisible = false
     @State private var containerOpacity = 1.0
-
-    private let dayBars: [CGFloat] = [18, 26, 22, 34, 28, 40, 32]
 
     var body: some View {
         GeometryReader { proxy in
@@ -24,7 +23,7 @@ struct WelcomeView: View {
 
                 RadialGradient(
                     gradient: Gradient(colors: [
-                        AliveColor.accent.opacity(0.16),
+                        AliveColor.accent.opacity(0.18),
                         AliveColor.accent.opacity(0)
                     ]),
                     center: UnitPoint(x: 0.5, y: 0.38),
@@ -36,36 +35,66 @@ struct WelcomeView: View {
 
                 VStack(spacing: AliveSpace.x8) {
                     ZStack {
-                        RoundedRectangle(cornerRadius: 32, style: .continuous)
-                            .fill(AliveColor.surfaceElevated)
-                        RoundedRectangle(cornerRadius: 32, style: .continuous)
-                            .stroke(AliveColor.separator, lineWidth: 0.5)
+                        RoundedRectangle(cornerRadius: 36, style: .continuous)
+                            .fill(
+                                LinearGradient(
+                                    colors: [
+                                        Color(red: 14 / 255, green: 21 / 255, blue: 37 / 255),
+                                        Color(red: 7 / 255, green: 11 / 255, blue: 20 / 255)
+                                    ],
+                                    startPoint: .top,
+                                    endPoint: .bottom
+                                )
+                            )
+                        RoundedRectangle(cornerRadius: 36, style: .continuous)
+                            .stroke(Color.white.opacity(0.14), lineWidth: 0.75)
 
-                        VStack(spacing: AliveSpace.x5) {
-                            HStack(alignment: .bottom, spacing: AliveSpace.x2) {
-                                ForEach(Array(dayBars.enumerated()), id: \.offset) { _, height in
-                                    Capsule()
-                                        .fill(AliveColor.accent.opacity(0.72))
-                                        .frame(width: 8, height: height)
-                                }
-                            }
+                        RadialGradient(
+                            gradient: Gradient(colors: [
+                                AliveColor.accent.opacity(0.28),
+                                AliveColor.accent.opacity(0)
+                            ]),
+                            center: .center,
+                            startRadius: 4,
+                            endRadius: size * 0.48
+                        )
+                        .clipShape(RoundedRectangle(cornerRadius: 36, style: .continuous))
 
-                            GeometryReader { bar in
-                                ZStack(alignment: .leading) {
-                                    Capsule().fill(AliveColor.surfaceSunken)
-                                    Capsule()
-                                        .fill(AliveColor.accentFill)
-                                        .frame(width: bar.size.width * progress)
-                                }
-                            }
-                            .frame(height: 6)
-                            .padding(.horizontal, AliveSpace.x5)
+                        ZStack {
+                            WelcomeRibbonShape()
+                                .trim(from: 0, to: progress)
+                                .stroke(
+                                    LinearGradient(
+                                        colors: [
+                                            .white,
+                                            Color(red: 112 / 255, green: 215 / 255, blue: 1),
+                                            Color(red: 10 / 255, green: 132 / 255, blue: 1)
+                                        ],
+                                        startPoint: .leading,
+                                        endPoint: .trailing
+                                    ),
+                                    style: StrokeStyle(
+                                        lineWidth: max(6, size * 0.056),
+                                        lineCap: .round,
+                                        lineJoin: .round
+                                    )
+                                )
+                                .shadow(color: AliveColor.accent.opacity(0.6), radius: 10)
+
+                            Circle()
+                                .fill(Color(red: 112 / 255, green: 215 / 255, blue: 1))
+                                .frame(width: max(6, size * 0.056), height: max(6, size * 0.056))
+                                .shadow(color: AliveColor.accent.opacity(0.85), radius: 6)
+                                .offset(y: -size * 0.21)
+                                .scaleEffect(dotIsVisible ? 1 : 0.2)
+                                .opacity(dotIsVisible ? 1 : 0)
                         }
+                        .padding(size * 0.18)
                     }
                     .frame(width: size, height: size)
                     .scaleEffect(cardIsVisible ? 1 : 0.94)
                     .opacity(cardIsVisible ? 1 : 0)
-                    .shadow(color: .black.opacity(0.08), radius: 20, y: 8)
+                    .shadow(color: .black.opacity(0.16), radius: 24, y: 10)
                     .accessibilityHidden(true)
 
                     VStack(spacing: AliveSpace.x2) {
@@ -73,11 +102,12 @@ struct WelcomeView: View {
                             .font(AliveFont.sans(34, weight: .heavy, relativeTo: .title))
                             .tracking(6)
                             .foregroundStyle(AliveColor.ink)
+                            .opacity(brandIsVisible ? 1 : 0)
                         Text("让余额活到发薪日")
                             .font(AliveFont.sans(15, weight: .medium, relativeTo: .body))
                             .foregroundStyle(AliveColor.inkSecondary)
+                            .opacity(taglineIsVisible ? 1 : 0)
                     }
-                    .opacity(brandIsVisible && taglineIsVisible ? 1 : 0)
                 }
                 .padding(.bottom, AliveSpace.x10)
 
@@ -116,6 +146,7 @@ struct WelcomeView: View {
             withTransaction(transaction) {
                 cardIsVisible = true
                 progress = 1
+                dotIsVisible = true
                 brandIsVisible = true
                 taglineIsVisible = true
             }
@@ -128,25 +159,48 @@ struct WelcomeView: View {
             await Task.yield()
             try Task.checkCancellation()
 
-            withAnimation(.easeOut(duration: 0.40)) { cardIsVisible = true }
-            try await Task.sleep(for: .milliseconds(120))
+            withAnimation(.easeOut(duration: 0.36)) { cardIsVisible = true }
+            try await Task.sleep(for: .milliseconds(100))
 
-            withAnimation(.timingCurve(0.22, 0.7, 0.18, 1, duration: 0.60)) { progress = 1 }
-            try await Task.sleep(for: .milliseconds(180))
+            withAnimation(.timingCurve(0.22, 0.7, 0.18, 1, duration: 0.56)) { progress = 1 }
+            try await Task.sleep(for: .milliseconds(260))
 
-            withAnimation(.easeOut(duration: 0.30)) { brandIsVisible = true }
-            try await Task.sleep(for: .milliseconds(120))
+            withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) { dotIsVisible = true }
+            withAnimation(.easeOut(duration: 0.28)) { brandIsVisible = true }
+            try await Task.sleep(for: .milliseconds(110))
 
-            withAnimation(.easeOut(duration: 0.30)) { taglineIsVisible = true }
-            try await Task.sleep(for: .milliseconds(250))
+            withAnimation(.easeOut(duration: 0.28)) { taglineIsVisible = true }
+            try await Task.sleep(for: .milliseconds(240))
 
-            withAnimation(.easeInOut(duration: 0.35)) { containerOpacity = 0 }
-            try await Task.sleep(for: .milliseconds(360))
+            withAnimation(.easeInOut(duration: 0.32)) { containerOpacity = 0 }
+            try await Task.sleep(for: .milliseconds(340))
 
             try Task.checkCancellation()
             onComplete()
         } catch {
             // Parent removal cancels this sequence.
         }
+    }
+}
+
+private struct WelcomeRibbonShape: Shape {
+    func path(in rect: CGRect) -> Path {
+        func pt(_ nx: CGFloat, _ ny: CGFloat) -> CGPoint {
+            CGPoint(
+                x: rect.minX + nx * rect.width,
+                y: rect.minY + (1 - ny) * rect.height
+            )
+        }
+
+        var path = Path()
+        path.move(to: pt(0.05, 0.22))
+        path.addCurve(to: pt(0.23, 0.78), control1: pt(0.11, 0.40), control2: pt(0.16, 0.78))
+        path.addCurve(to: pt(0.39, 0.22), control1: pt(0.29, 0.78), control2: pt(0.33, 0.22))
+        path.addCurve(to: pt(0.55, 0.69), control1: pt(0.45, 0.22), control2: pt(0.49, 0.69))
+        path.addCurve(to: pt(0.71, 0.22), control1: pt(0.60, 0.69), control2: pt(0.65, 0.22))
+        path.addCurve(to: pt(0.90, 0.71), control1: pt(0.78, 0.22), control2: pt(0.82, 0.71))
+        path.addCurve(to: pt(0.97, 0.56), control1: pt(0.95, 0.71), control2: pt(0.97, 0.64))
+        path.addCurve(to: pt(0.84, 0.41), control1: pt(0.97, 0.46), control2: pt(0.91, 0.41))
+        return path
     }
 }

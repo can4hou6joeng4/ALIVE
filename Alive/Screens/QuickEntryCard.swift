@@ -12,11 +12,8 @@ struct QuickEntryCard: View {
     let model: AppModel
     var fillsAvailableHeight = false
 
-    static let noteTags = ["午饭", "咖啡", "超市", "交通"]
-
     @State private var amountText = ""
     @State private var noteText = ""
-    @State private var selectedTag: String?
     @State private var isSaving = false
     @State private var errorText: String?
     @State private var saveSucceeded = false
@@ -97,11 +94,12 @@ struct QuickEntryCard: View {
                 isUnfolded = true
             }
             isTitleFocused = true
-            Task { @MainActor in
-                // Wait a beat so the keyboard rises alongside the card.
-                try? await Task.sleep(for: .milliseconds(380))
-                isAmountFocused = true
-            }
+        }
+        .task {
+            // Wait a beat so the keyboard rises alongside the card.
+            try? await Task.sleep(for: .milliseconds(380))
+            guard !Task.isCancelled else { return }
+            isAmountFocused = true
         }
         .onChange(of: amountText) { _, _ in
             errorText = nil
@@ -109,10 +107,6 @@ struct QuickEntryCard: View {
         .onChange(of: noteText) { _, newValue in
             if newValue.count > 80 {
                 noteText = String(newValue.prefix(80))
-                return
-            }
-            if let selectedTag, newValue != selectedTag {
-                self.selectedTag = nil
             }
         }
     }
@@ -130,20 +124,27 @@ struct QuickEntryCard: View {
     }
 
     private var header: some View {
-        HStack(alignment: .center, spacing: AliveSpace.x2) {
-            Text("记一笔")
-                .font(AliveFont.sans(20, weight: .bold, relativeTo: .title3))
-                .foregroundStyle(AliveColor.ink)
-                .accessibilityAddTraits(.isHeader)
-                .accessibilityFocused($isTitleFocused)
+        VStack(spacing: AliveSpace.x2) {
+            Capsule()
+                .fill(AliveColor.separator)
+                .frame(width: 34, height: 4)
+                .padding(.top, AliveSpace.x2)
+                .accessibilityHidden(true)
 
-            Spacer(minLength: AliveSpace.x2)
+            HStack(alignment: .center, spacing: AliveSpace.x2) {
+                Text("记一笔")
+                    .font(AliveFont.sans(20, weight: .bold, relativeTo: .title3))
+                    .foregroundStyle(AliveColor.ink)
+                    .accessibilityAddTraits(.isHeader)
+                    .accessibilityFocused($isTitleFocused)
 
-            ModalCloseButton(action: close)
+                Spacer(minLength: AliveSpace.x2)
+
+                ModalCloseButton(action: close)
+            }
+            .padding(.leading, AliveSpace.x5)
+            .padding(.trailing, AliveSpace.x3)
         }
-        .padding(.leading, AliveSpace.x5)
-        .padding(.trailing, AliveSpace.x3)
-        .padding(.top, AliveSpace.x3)
     }
 
     private var saveButton: some View {
@@ -158,29 +159,26 @@ struct QuickEntryCard: View {
     }
 
     private var amountSection: some View {
-        VStack(alignment: .leading, spacing: AliveSpace.x2) {
-            FieldLabel(text: "支出金额")
-            HStack(alignment: .firstTextBaseline, spacing: AliveSpace.x2) {
-                Text("¥")
-                    .font(AliveFont.display(26))
-                    .foregroundStyle(AliveColor.inkSecondary)
-                    .accessibilityHidden(true)
-                TextField("0.00", text: $amountText)
-                    .font(AliveFont.display(44))
-                    .monospacedDigit()
-                    .tracking(-1.2)
-                    .keyboardType(.decimalPad)
-                    .textFieldStyle(.plain)
-                    .foregroundStyle(AliveColor.ink)
-                    .focused($isAmountFocused)
-                    .lineLimit(1)
-                    .minimumScaleFactor(AliveFont.amountFieldMinimumScale)
-                    .accessibilityLabel("支出金额")
-                    .accessibilityHint("最多 9 位整数和 2 位小数，必须大于 0。")
-                    .accessibilitySortPriority(2)
+        AmountInputRow(
+            label: "支出金额",
+            text: $amountText,
+            fontSize: 44,
+            prefixSize: 26,
+            accessibilityHint: "最多 9 位整数和 2 位小数，必须大于 0。",
+            focusedField: $isAmountFocused,
+            focusEquals: true
+        ) {
+            if isAmountFocused || isNoteFocused {
+                KeyboardDismissButton {
+                    isAmountFocused = false
+                    isNoteFocused = false
+                }
             }
-            Rectangle().fill(AliveColor.separator).frame(height: 0.5)
         }
+    }
+
+    private var noteLimitText: String {
+        noteText.count >= 80 ? "已达 80 字符上限，超出部分不会保存。" : "\(noteText.count) / 80"
     }
 
     private var noteSection: some View {
@@ -204,66 +202,18 @@ struct QuickEntryCard: View {
                         .stroke(AliveColor.separator, lineWidth: 0.5)
                 }
                 .accessibilityLabel("备注")
-                .accessibilityHint("可选，最多 80 个字符。也可以点选下面的常用标签。")
+                .accessibilityHint("可选，最多 80 个字符。")
 
-            Text("常用")
-                .font(AliveFont.sans(12, weight: .medium, relativeTo: .caption))
-                .foregroundStyle(AliveColor.inkTertiary)
-                .accessibilityHidden(true)
-
-            LazyVGrid(
-                columns: Array(
-                    repeating: GridItem(.flexible(), spacing: AliveSpace.x2),
-                    count: dynamicTypeSize.isAccessibilitySize ? 1 : 4
-                ),
-                alignment: .leading,
-                spacing: AliveSpace.x2
-            ) {
-                ForEach(Self.noteTags, id: \.self) { tag in
-                    tagChip(tag)
+            if !noteText.isEmpty {
+                HStack {
+                    Spacer()
+                    Text(noteLimitText)
+                        .font(AliveFont.sans(12, relativeTo: .footnote))
+                        .foregroundStyle(noteText.count >= 80 ? AliveColor.overspend : AliveColor.inkTertiary)
+                        .monospacedDigit()
                 }
             }
         }
-    }
-
-    private func tagChip(_ tag: String) -> some View {
-        let isSelected = selectedTag == tag
-        return Button {
-            if isSelected {
-                selectedTag = nil
-                if noteText == tag {
-                    noteText = ""
-                }
-            } else {
-                selectedTag = tag
-                noteText = tag
-            }
-        } label: {
-            HStack(spacing: AliveSpace.x1) {
-                if isSelected {
-                    // Selection must not rely on color alone.
-                    Image(systemName: "checkmark")
-                        .font(.system(size: 12, weight: .semibold))
-                        .accessibilityHidden(true)
-                }
-                Text(tag)
-                    .font(AliveFont.sans(15, weight: .medium, relativeTo: .subheadline))
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.8)
-            }
-            .foregroundStyle(isSelected ? Color.white : AliveColor.ink)
-            .frame(maxWidth: .infinity)
-            .padding(.horizontal, AliveSpace.x3)
-            .frame(minHeight: 44)
-            .background(
-                Capsule().fill(isSelected ? AliveColor.accentFill : AliveColor.surfaceSunken)
-            )
-            .contentShape(Capsule())
-        }
-        .buttonStyle(.plain)
-        .accessibilityLabel(tag)
-        .accessibilityAddTraits(isSelected ? .isSelected : [])
-        .accessibilityHint(isSelected ? "再点一次从备注中移除。" : "把备注填为\(tag)，可以继续修改。")
     }
 
     private var timestamp: some View {

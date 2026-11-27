@@ -9,7 +9,6 @@ struct SetupView: View {
     @State private var payday: Date
     @State private var isSubmitting = false
     @State private var errorText: String?
-    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     @FocusState private var isAmountFocused: Bool
 
     init(model: AppModel) {
@@ -54,13 +53,16 @@ struct SetupView: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: AliveSpace.x6) {
-                VStack(alignment: .leading, spacing: AliveSpace.x2) {
-                    Text("ALIVE")
-                        .font(AliveFont.sans(12, weight: .bold, relativeTo: .footnote))
-                        .tracking(2)
-                        .foregroundStyle(AliveColor.accent)
+                VStack(alignment: .leading, spacing: AliveSpace.x3) {
+                    HStack(spacing: AliveSpace.x2) {
+                        AliveBrandBadge(size: 28)
+                        Text("ALIVE")
+                            .font(AliveFont.sans(13, weight: .bold, relativeTo: .footnote))
+                            .tracking(2.2)
+                            .foregroundStyle(AliveColor.accent)
+                    }
                     Text("让余额活到发薪日")
-                        .font(.system(size: 36, weight: .bold))
+                        .font(AliveFont.sans(36, weight: .bold, relativeTo: .largeTitle))
                         .foregroundStyle(AliveColor.ink)
                         .fixedSize(horizontal: false, vertical: true)
                         .accessibilityAddTraits(.isHeader)
@@ -71,26 +73,15 @@ struct SetupView: View {
 
                 SurfaceCard {
                     VStack(alignment: .leading, spacing: AliveSpace.x3) {
-                        FieldLabel(text: "当前剩余金额")
-                        HStack(alignment: .center, spacing: AliveSpace.x2) {
-                            HStack(alignment: .firstTextBaseline, spacing: AliveSpace.x2) {
-                                Text("¥")
-                                    .font(AliveFont.display(32))
-                                    .foregroundStyle(AliveColor.inkSecondary)
-                                    .accessibilityHidden(true)
-                                TextField("0.00", text: $amountText)
-                                    .font(AliveFont.display(52))
-                                    .monospacedDigit()
-                                    .tracking(-1.5)
-                                    .foregroundStyle(AliveColor.ink)
-                                    .keyboardType(.decimalPad)
-                                    .textFieldStyle(.plain)
-                                    .focused($isAmountFocused)
-                                    .lineLimit(1)
-                                    .minimumScaleFactor(AliveFont.amountFieldMinimumScale)
-                                    .accessibilityLabel("当前剩余金额")
-                                    .accessibilityHint("最多 9 位整数和 2 位小数，必须大于 0。")
-                            }
+                        AmountInputRow(
+                            label: "当前剩余金额",
+                            text: $amountText,
+                            fontSize: 52,
+                            prefixSize: 32,
+                            accessibilityHint: "最多 9 位整数和 2 位小数，必须大于 0。",
+                            focusedField: $isAmountFocused,
+                            focusEquals: true
+                        ) {
                             if isAmountFocused {
                                 // The decimal pad has no return key, and the dates and 开始 sit below it.
                                 KeyboardDismissButton {
@@ -98,9 +89,6 @@ struct SetupView: View {
                                 }
                             }
                         }
-                        Rectangle()
-                            .fill(AliveColor.separator)
-                            .frame(height: 0.5)
                         Text("人民币 CNY")
                             .font(AliveFont.sans(12, relativeTo: .footnote))
                             .foregroundStyle(AliveColor.inkTertiary)
@@ -109,9 +97,9 @@ struct SetupView: View {
 
                 SurfaceCard(padding: 0) {
                     VStack(spacing: 0) {
-                        dateRow(title: "下一次发薪日", selection: $payday)
+                        AdaptiveDatePickerRow(title: "下一次发薪日", selection: $payday)
                         Divider().padding(.leading, AliveSpace.x5)
-                        dateRow(title: "起始日", selection: $startDate)
+                        AdaptiveDatePickerRow(title: "起始日", selection: $startDate)
                     }
                 }
 
@@ -134,44 +122,11 @@ struct SetupView: View {
         }
         .background(AliveColor.canvas)
         .scrollDismissesKeyboard(.interactively)
-        .onAppear {
-            Task { @MainActor in
-                try? await Task.sleep(for: .milliseconds(350))
-                isAmountFocused = true
-            }
+        .task {
+            try? await Task.sleep(for: .milliseconds(350))
+            guard !Task.isCancelled else { return }
+            isAmountFocused = true
         }
-    }
-
-    private func dateRow(title: String, selection: Binding<Date>) -> some View {
-        let label = Text(title)
-            .font(AliveFont.sans(15, weight: .medium, relativeTo: .body))
-            .foregroundStyle(AliveColor.inkSecondary)
-        let picker = DatePicker(title, selection: selection, displayedComponents: .date)
-            .labelsHidden()
-            .datePickerStyle(.compact)
-            .tint(AliveColor.accent)
-            .dynamicTypeSize(...DynamicTypeSize.aliveControlLimit)
-
-        return Group {
-            if dynamicTypeSize.isAccessibilitySize {
-                // Side by side, the picker squeezes the title down to one character per line.
-                VStack(alignment: .leading, spacing: AliveSpace.x2) {
-                    label
-                    picker
-                }
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .padding(.vertical, AliveSpace.x3)
-            } else {
-                HStack {
-                    label
-                    Spacer()
-                    picker
-                }
-                .frame(minHeight: 56)
-            }
-        }
-        .padding(.horizontal, AliveSpace.x5)
-        .accessibilityElement(children: .contain)
     }
 
     private func submit() {

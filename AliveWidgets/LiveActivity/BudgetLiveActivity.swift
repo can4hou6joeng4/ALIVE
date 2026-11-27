@@ -17,10 +17,13 @@ struct BudgetLiveActivityWidget: Widget {
                         LiveEntryIslandCard(cycleID: cycleID, liveEntry: liveEntry)
                     } else {
                         HStack(spacing: IslandEntryMetrics.amountPanelSpacing) {
-                            VStack(alignment: .leading, spacing: IslandEntryMetrics.sectionSpacing) {
-                                Text(state.label)
-                                    .font(WidgetFont.sans(10, weight: .semibold))
-                                    .foregroundStyle(WidgetColor.islandInkSecondary)
+                            VStack(alignment: .leading, spacing: 2) {
+                                HStack(spacing: 5) {
+                                    AliveMonogram(tint: islandAccentColor(for: state))
+                                    Text(state.label)
+                                        .font(WidgetFont.sans(10, weight: .semibold))
+                                        .foregroundStyle(WidgetColor.islandInkSecondary)
+                                }
                                 Text(MoneyFormatter.currency(cents: state.amountCents))
                                     .font(WidgetFont.display(22))
                                     .monospacedDigit()
@@ -28,18 +31,42 @@ struct BudgetLiveActivityWidget: Widget {
                                     .lineLimit(1)
                                     .minimumScaleFactor(0.55)
                             }
-                            Spacer(minLength: 0)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .padding(.horizontal, 12)
+                            .padding(.vertical, 8)
+                            .background {
+                                UnevenRoundedRectangle(
+                                    topLeadingRadius: 16,
+                                    bottomLeadingRadius: 16,
+                                    bottomTrailingRadius: 10,
+                                    topTrailingRadius: 10,
+                                    style: .continuous
+                                )
+                                .fill(WidgetColor.islandInk.opacity(0.08))
+                            }
+
                             Button(intent: BeginLiveEntryIntent(cycleID: cycleID)) {
                                 Text("记一笔")
                                     .font(WidgetFont.sans(13, weight: .semibold))
                                     .foregroundStyle(WidgetColor.islandInk)
-                                    .padding(.horizontal, 16)
-                                    .frame(height: IslandEntryMetrics.noteTagHeight)
-                                    .background(WidgetColor.islandInk.opacity(0.14), in: Capsule())
+                                    .padding(.horizontal, 18)
+                                    .frame(maxHeight: .infinity)
+                                    .frame(minHeight: IslandEntryMetrics.noteTagHeight)
+                                    .background {
+                                        UnevenRoundedRectangle(
+                                            topLeadingRadius: 10,
+                                            bottomLeadingRadius: 10,
+                                            bottomTrailingRadius: 16,
+                                            topTrailingRadius: 16,
+                                            style: .continuous
+                                        )
+                                        .fill(WidgetColor.islandInk.opacity(0.14))
+                                    }
                             }
                             .buttonStyle(IslandControlButtonStyle())
                             .accessibilityIdentifier("live-entry-begin")
                         }
+                        .fixedSize(horizontal: false, vertical: true)
                         .padding(.horizontal, IslandEntryMetrics.horizontalInset)
                         .padding(.bottom, IslandEntryMetrics.bottomSafetyInset)
                         .accessibilityElement(children: .contain)
@@ -233,35 +260,28 @@ private struct AliveMonogram: View {
                 tint,
                 style: StrokeStyle(lineWidth: 1.8, lineCap: .round, lineJoin: .round)
             )
-            .frame(width: 14, height: 14)
+            .frame(width: 16, height: 14)
             .accessibilityHidden(true)
     }
 }
 
 private struct AliveMonogramShape: Shape {
     func path(in rect: CGRect) -> Path {
+        func pt(_ nx: CGFloat, _ ny: CGFloat) -> CGPoint {
+            CGPoint(
+                x: rect.minX + nx * rect.width,
+                y: rect.minY + (1 - ny) * rect.height
+            )
+        }
+
         var path = Path()
-        let left = rect.minX + rect.width * 0.10
-        let right = rect.maxX - rect.width * 0.10
-        let bottom = rect.maxY - rect.height * 0.08
-        let apexY = rect.minY + rect.height * 0.10
-
-        path.move(to: CGPoint(x: left, y: bottom))
-        path.addLine(to: CGPoint(x: rect.midX, y: apexY))
-        path.addLine(to: CGPoint(x: right, y: bottom))
-
-        path.move(
-            to: CGPoint(
-                x: rect.minX + rect.width * 0.27,
-                y: rect.minY + rect.height * 0.62
-            )
-        )
-        path.addLine(
-            to: CGPoint(
-                x: rect.maxX - rect.width * 0.27,
-                y: rect.minY + rect.height * 0.62
-            )
-        )
+        path.move(to: pt(0.06, 0.18))
+        path.addCurve(to: pt(0.24, 0.84), control1: pt(0.12, 0.40), control2: pt(0.17, 0.84))
+        path.addCurve(to: pt(0.41, 0.18), control1: pt(0.30, 0.84), control2: pt(0.35, 0.18))
+        path.addCurve(to: pt(0.56, 0.72), control1: pt(0.46, 0.18), control2: pt(0.51, 0.72))
+        path.addCurve(to: pt(0.72, 0.18), control1: pt(0.61, 0.72), control2: pt(0.66, 0.18))
+        path.addCurve(to: pt(0.91, 0.74), control1: pt(0.78, 0.18), control2: pt(0.83, 0.74))
+        path.addCurve(to: pt(0.96, 0.56), control1: pt(0.95, 0.74), control2: pt(0.96, 0.65))
         return path
     }
 }

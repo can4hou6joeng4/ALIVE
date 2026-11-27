@@ -259,17 +259,17 @@ private struct SettingsDrawer: View {
                 .accessibilityAddTraits(.isModal)
                 .accessibilityAction(.escape) { close() }
             }
-            .onAppear {
-                Task { @MainActor in
-                    try? await Task.sleep(for: .milliseconds(350))
-                    isHeaderFocused = true
-                }
+            .task {
+                try? await Task.sleep(for: .milliseconds(350))
+                guard !Task.isCancelled else { return }
+                isHeaderFocused = true
             }
         }
     }
 
     private func drawerHeader(width: CGFloat) -> some View {
-        HStack(alignment: .center, spacing: AliveSpace.x2) {
+        HStack(alignment: .center, spacing: AliveSpace.x3) {
+            AliveBrandBadge(size: 26)
             Text("设置")
                 .font(AliveFont.sans(22, weight: .bold, relativeTo: .title2))
                 .foregroundStyle(AliveColor.ink)

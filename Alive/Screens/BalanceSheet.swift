@@ -58,37 +58,22 @@ struct BalanceSheet: View {
                     }
 
                     SurfaceCard {
-                        VStack(alignment: .leading, spacing: AliveSpace.x3) {
-                            FieldLabel(text: "当前周期剩余总金额")
-                            HStack(alignment: .center, spacing: AliveSpace.x2) {
-                                HStack(alignment: .firstTextBaseline, spacing: AliveSpace.x2) {
-                                    Text("¥")
-                                        .font(AliveFont.display(32))
-                                        .foregroundStyle(AliveColor.inkSecondary)
-                                        .accessibilityHidden(true)
-                                    TextField("0.00", text: $balanceText)
-                                        .font(AliveFont.display(50))
-                                        .monospacedDigit()
-                                        .tracking(-1.5)
-                                        .keyboardType(.decimalPad)
-                                        .textFieldStyle(.plain)
-                                        .foregroundStyle(AliveColor.ink)
-                                        .focused($isFocused)
-                                        .lineLimit(1)
-                                        .minimumScaleFactor(AliveFont.amountFieldMinimumScale)
-                                        .accessibilityLabel("当前周期剩余总金额")
-                                        .accessibilityHint("支持负值；输入负余额时今日额度按 0 计算。")
-                                        .accessibilitySortPriority(2)
-                                }
-                                GlassIconButton(
-                                    systemName: "plus.forwardslash.minus",
-                                    accessibilityLabel: "切换余额正负",
-                                    accessibilityValue: isNegativeInput ? "当前为负值" : "当前为正值"
-                                ) {
-                                    toggleSign()
-                                }
+                        AmountInputRow(
+                            label: "当前周期剩余总金额",
+                            text: $balanceText,
+                            fontSize: 50,
+                            prefixSize: 32,
+                            accessibilityHint: "支持负值；输入负余额时今日额度按 0 计算。",
+                            focusedField: $isFocused,
+                            focusEquals: true
+                        ) {
+                            GlassIconButton(
+                                systemName: "plus.forwardslash.minus",
+                                accessibilityLabel: "切换余额正负",
+                                accessibilityValue: isNegativeInput ? "当前为负值" : "当前为正值"
+                            ) {
+                                toggleSign()
                             }
-                            Rectangle().fill(AliveColor.separator).frame(height: 0.5)
                         }
                     }
 
@@ -147,11 +132,10 @@ struct BalanceSheet: View {
 
         .presentationDetents([.large])
         .presentationDragIndicator(.hidden)
-        .onAppear {
-            Task { @MainActor in
-                try? await Task.sleep(for: .milliseconds(350))
-                isFocused = true
-            }
+        .task {
+            try? await Task.sleep(for: .milliseconds(350))
+            guard !Task.isCancelled else { return }
+            isFocused = true
         }
         .onChange(of: balanceText) { _, _ in
             errorText = nil

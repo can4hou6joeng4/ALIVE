@@ -61,29 +61,15 @@ struct EditExpenseSheet: View {
                     }
 
                     SurfaceCard {
-                        VStack(alignment: .leading, spacing: AliveSpace.x3) {
-                            FieldLabel(text: "支出金额")
-                            HStack(alignment: .firstTextBaseline, spacing: AliveSpace.x2) {
-                                Text("¥")
-                                    .font(AliveFont.display(32))
-                                    .foregroundStyle(AliveColor.inkSecondary)
-                                    .accessibilityHidden(true)
-                                TextField("0.00", text: $amountText)
-                                    .font(AliveFont.display(52))
-                                    .monospacedDigit()
-                                    .tracking(-1.5)
-                                    .keyboardType(.decimalPad)
-                                    .textFieldStyle(.plain)
-                                    .foregroundStyle(AliveColor.ink)
-                                    .focused($focusedField, equals: .amount)
-                                    .lineLimit(1)
-                                    .minimumScaleFactor(AliveFont.amountFieldMinimumScale)
-                                    .accessibilityLabel("支出金额")
-                                    .accessibilityHint("最多 9 位整数和 2 位小数，必须大于 0。")
-                                    .accessibilitySortPriority(2)
-                            }
-                            Rectangle().fill(AliveColor.separator).frame(height: 0.5)
-                        }
+                        AmountInputRow(
+                            label: "支出金额",
+                            text: $amountText,
+                            fontSize: 52,
+                            prefixSize: 32,
+                            accessibilityHint: "最多 9 位整数和 2 位小数，必须大于 0。",
+                            focusedField: $focusedField,
+                            focusEquals: .amount
+                        ) { EmptyView() }
                     }
 
                     SurfaceCard {
@@ -154,11 +140,10 @@ struct EditExpenseSheet: View {
 
         .presentationDetents([.large])
         .presentationDragIndicator(.hidden)
-        .onAppear {
-            Task { @MainActor in
-                try? await Task.sleep(for: .milliseconds(350))
-                focusedField = .amount
-            }
+        .task {
+            try? await Task.sleep(for: .milliseconds(350))
+            guard !Task.isCancelled else { return }
+            focusedField = .amount
         }
         .onChange(of: amountText) { _, _ in
             errorText = nil

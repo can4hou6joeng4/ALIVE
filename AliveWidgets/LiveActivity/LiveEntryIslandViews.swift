@@ -58,12 +58,17 @@ private struct LiveEntryIslandAmountStep: View {
     var body: some View {
         HStack(alignment: .top, spacing: IslandEntryMetrics.amountPanelSpacing) {
             VStack(alignment: .leading, spacing: 0) {
-                Text("支出金额")
-                    .font(WidgetFont.sans(10, weight: .semibold))
-                    .foregroundStyle(liveEntry.errorMessage == nil ? WidgetColor.islandInkMuted : WidgetColor.islandOverspend)
-                    .lineLimit(1)
-                    .frame(height: 12)
-                    .accessibilityHidden(true)
+                HStack(spacing: 4) {
+                    IslandRibbonIcon(tint: liveEntry.errorMessage == nil ? Color(red: 112 / 255, green: 215 / 255, blue: 1) : WidgetColor.islandOverspend)
+                    Text("支出金额")
+                        .font(WidgetFont.sans(10, weight: .semibold))
+                        .foregroundStyle(liveEntry.errorMessage == nil ? WidgetColor.islandInkMuted : WidgetColor.islandOverspend)
+                        .lineLimit(1)
+                }
+                .frame(height: 14)
+                .accessibilityHidden(true)
+
+                Spacer(minLength: 2)
 
                 Text("¥\(liveEntry.displayAmountText)")
                     .font(WidgetFont.display(22))
@@ -74,11 +79,31 @@ private struct LiveEntryIslandAmountStep: View {
                     .accessibilityLabel("支出金额 \(liveEntry.displayAmountText) 元")
                     .frame(height: 28)
                     .contentTransition(.numericText())
-
-                Spacer(minLength: 0)
             }
+            .padding(.horizontal, 10)
+            .padding(.vertical, 8)
             .frame(width: IslandEntryMetrics.amountPanelWidth, alignment: .leading)
-            .frame(height: IslandEntryMetrics.amountPanelHeight)
+            .frame(height: IslandEntryMetrics.amountCardHeight, alignment: .topLeading)
+            .background {
+                UnevenRoundedRectangle(
+                    topLeadingRadius: 18,
+                    bottomLeadingRadius: 18,
+                    bottomTrailingRadius: 10,
+                    topTrailingRadius: 10,
+                    style: .continuous
+                )
+                .fill(WidgetColor.islandInk.opacity(0.08))
+            }
+            .overlay {
+                UnevenRoundedRectangle(
+                    topLeadingRadius: 18,
+                    bottomLeadingRadius: 18,
+                    bottomTrailingRadius: 10,
+                    topTrailingRadius: 10,
+                    style: .continuous
+                )
+                .stroke(WidgetColor.islandInk.opacity(0.10), lineWidth: 0.5)
+            }
 
             VStack(spacing: IslandEntryMetrics.rowSpacing) {
                 keyRow(["1", "2", "3", "4", "5"], isTopRow: true)
@@ -234,6 +259,33 @@ struct LiveEntryIslandBottom: View {
             }
         }
         .padding(.horizontal, IslandEntryMetrics.horizontalInset)
+    }
+}
+
+private struct IslandRibbonIcon: View {
+    let tint: Color
+
+    var body: some View {
+        IslandRibbonShape()
+            .stroke(tint, style: StrokeStyle(lineWidth: 1.5, lineCap: .round, lineJoin: .round))
+            .frame(width: 12, height: 10)
+            .accessibilityHidden(true)
+    }
+}
+
+private struct IslandRibbonShape: Shape {
+    func path(in rect: CGRect) -> Path {
+        func pt(_ nx: CGFloat, _ ny: CGFloat) -> CGPoint {
+            CGPoint(x: rect.minX + nx * rect.width, y: rect.minY + (1 - ny) * rect.height)
+        }
+        var path = Path()
+        path.move(to: pt(0.06, 0.18))
+        path.addCurve(to: pt(0.24, 0.84), control1: pt(0.12, 0.40), control2: pt(0.17, 0.84))
+        path.addCurve(to: pt(0.41, 0.18), control1: pt(0.30, 0.84), control2: pt(0.35, 0.18))
+        path.addCurve(to: pt(0.56, 0.72), control1: pt(0.46, 0.18), control2: pt(0.51, 0.72))
+        path.addCurve(to: pt(0.72, 0.18), control1: pt(0.61, 0.72), control2: pt(0.66, 0.18))
+        path.addCurve(to: pt(0.91, 0.74), control1: pt(0.78, 0.18), control2: pt(0.83, 0.74))
+        return path
     }
 }
 
