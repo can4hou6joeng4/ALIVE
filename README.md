@@ -1,55 +1,98 @@
-# ALIVE
-
-ALIVE 是一款围绕 **「今天还可花」** 设计的 iOS 个人每日预算应用。它不追求传统记账工具的复杂报表与分类，而是把当前余额按日历天数清晰分配到发薪日前的每一天，并通过 **Bento 便当盒主屏** 与 **灵动岛 / 锁屏 Live Activity** 降低日常查看与记账成本。
-
----
-
-## 核心特性
-
-- **每日可用额度计算**：基于左闭右开周期 `[起始日, 发薪日)` 与固定北京时间（`Asia/Shanghai`）日历日，实时计算「今天还可花」与待开始状态的「预计每日额度」。
-- **Bento 便当盒主屏**：顶部核心额度与今日消耗进度、双列「距发薪日 / 当前余额」快捷方格，以及近期支出流水。
-- **轻量快速记账**：主屏顶部悬浮展开卡片，自动聚焦数字键盘，支持 80 字可选备注与实时校验；支持当前周期流水编辑与确认删除。
-- **余额修正与周期结转**：支持随时修正当前剩余余额并实时重算今日预算；跨越发薪日自动归档旧周期并结转余额。
-- **灵动岛与锁屏实时活动**：
-  - 紧凑态与最小态展示连笔流体品牌符号与紧凑金额，短按直达今日主屏（`alive://today`）。
-  - 展开态采用 Micro-Bento 布局与防裁切 0–9 整数键盘，支持岛内两步快捷记账（`LiveActivityIntent` 在 App 进程幂等写入）。
-  - 锁屏活动整卡通过 `alive://live-entry` 进入 App 顶部连续记账层。
-- **隐私与本地优先**：所有数据仅保存在本机 App 沙盒（SwiftData），不联网、不接入账号、云同步、分析或第三方 SDK，不使用 App Group。
+<div align="center">
+  <img src="Alive/Resources/Assets.xcassets/AppIcon.appiconset/AppIcon.png" width="96" height="96" alt="ALIVE App Icon" style="border-radius: 22px;" />
+  <h1>ALIVE</h1>
+  <p><strong>A minimalist personal daily budget app for iOS built around a single question: <em>"How much can I spend today?"</em></strong></p>
+  <p>
+    <img src="https://img.shields.io/badge/Platform-iOS%2026.0%2B-0A84FF?style=flat-square" alt="Platform iOS 26.0+" />
+    <img src="https://img.shields.io/badge/Swift-6.0-F05138?style=flat-square" alt="Swift 6.0" />
+    <img src="https://img.shields.io/badge/UI-SwiftUI%20%2B%20Bento%20Grid-111111?style=flat-square" alt="SwiftUI Bento Grid" />
+    <img src="https://img.shields.io/badge/Storage-SwiftData%20Local--Only-30D158?style=flat-square" alt="Local Only" />
+  </p>
+  <p>
+    <strong>English</strong> | <a href="README.zh-CN.md">简体中文</a>
+  </p>
+</div>
 
 ---
 
-## 技术栈与工程结构
+## Overview
 
-- **平台基线**：iOS 26.0+、iPhone only、Swift 6 严格并发
-- **核心框架**：SwiftUI、SwiftData、ActivityKit、WidgetKit、Swift Testing
-- **工程生成**：XcodeGen（[project.yml](project.yml)）
+**ALIVE** (*staying alive until payday*) avoids the clutter of traditional finance dashboards, categories, and complex charts. Instead, it continuously translates your remaining balance and days until your next payday into a clear **daily disposable allowance**, paired with a modular **Bento-grid home screen** and **Dynamic Island / Lock Screen Live Activity** quick entry.
+
+---
+
+## Screenshots
+
+| Today (Light) | Today (Dark) | Quick Entry | Cycle History | Settings Drawer |
+| :---: | :---: | :---: | :---: | :---: |
+| <img src="docs/screenshots/today-light.png" width="170" alt="Today Light" /> | <img src="docs/screenshots/today-dark.png" width="170" alt="Today Dark" /> | <img src="docs/screenshots/quick-entry.png" width="170" alt="Quick Entry" /> | <img src="docs/screenshots/history.png" width="170" alt="Cycle History" /> | <img src="docs/screenshots/settings.png" width="170" alt="Settings Drawer" /> |
+
+---
+
+## Key Features
+
+- **Daily Allowance Engine**: Computes `Today's Allowance` from your current balance over the half-open cycle `[Start Date, Payday)` using a fixed `Asia/Shanghai` calendar day boundary. Supports past, today, and future start dates (`pending` countdown state).
+- **Bento Grid Home Screen**:
+  - **Hero Tile**: Displays today's available (or overspent) amount, usage percentage badge, and progress bar.
+  - **Metrics Grid**: Side-by-side tiles for **Days Until Payday** and **Current Balance** (tap directly to adjust balance).
+  - **Recent Activity Tile**: Clean summary of recent expenses with one-tap navigation to full cycle history.
+- **Frictionless Quick Entry**: Top-unfolding floating card with automatic decimal-pad focus, optional 80-character note, and real-time validation. Full editing and deletion with confirmation are available in cycle history.
+- **Balance Overrides & Automatic Rollover**: Adjust your remaining balance anytime to recalculate daily allowance immediately; automatically archives completed cycles and rolls over remaining balance at payday midnight.
+- **Dynamic Island & Lock Screen Live Activity**:
+  - **Compact & Minimal**: Features the continuous ALIVE ribbon monogram and compact remaining amount; tapping opens the Today screen (`alive://today`).
+  - **Expanded Micro-Bento**: Long-press reveals a 2-step integer keypad (`0–9`, backspace, next) and quick-save tags (`LiveActivityIntent` executed idempotently in the App process).
+  - **Lock Screen Continuity**: Tapping the Lock Screen activity opens the in-app top continuity layer (`alive://live-entry`) for free-text notes.
+
+---
+
+## Core Formula
+
+For active cycles (and setups starting today or earlier):
+
+```text
+todayBudget    = max(0, currentBalance) / max(1, calendarDaysUntilPayday)
+todayAvailable = todayBudget - todaySpent
+```
+
+- All monetary math uses exact integer cents / `Decimal` (no binary floating-point accumulation).
+- `todayBudget` stays anchored for the local day; overspending triggers an `overspent` state without blocking further entries, and the remaining balance is re-allocated the next day.
+
+---
+
+## Architecture & Project Structure
+
+- **Target Baseline**: iOS 26.0+, iPhone only, Swift 6 strict concurrency
+- **Frameworks**: SwiftUI, SwiftData, ActivityKit, WidgetKit, Swift Testing
+- **Project Generator**: XcodeGen ([project.yml](project.yml))
 
 ```text
 ALIVE/
-├── Alive/                 # 主 App（页面、状态管理、设计系统、图标资源）
-├── AliveCore/             # 共享静态框架（领域模型、BudgetCalendar、BudgetResolver、SwiftData 仓库、格式化与深链）
-├── AliveWidgets/          # WidgetKit 扩展（Live Activity UI 与岛内两步记账视图）
-├── AliveTests/            # Swift Testing 单元测试（3 个 suite，共 42 个测试）
-├── Shared/                # 跨进程共享意图定义（LiveActivityIntent）
-├── project.yml            # XcodeGen 工程配置源
-├── PRD.md                 # 产品需求文档（唯一产品事实源）
-├── DESIGN.md              # 交互、视觉与技术架构设计基线
-└── AGENTS.md              # 仓库协作与工程验证规范
+├── Alive/                 # Main SwiftUI App (Screens, AppModel, DesignSystem, AppIcons)
+├── AliveCore/             # Shared static framework (Domain models, BudgetCalendar, BudgetResolver, SwiftData store, Formatting, Deep links)
+├── AliveWidgets/          # WidgetKit extension (Live Activity UI & Dynamic Island 2-step entry)
+├── AliveTests/            # Swift Testing suite (42 unit tests across 3 suites)
+├── Shared/                # Cross-target LiveActivityIntent definitions
+├── docs/screenshots/      # App screenshots for documentation
+├── project.yml            # XcodeGen specification
+├── PRD.md                 # Product Requirements Document (Source of Truth)
+├── DESIGN.md              # Interaction, visual, and technical design specification
+└── AGENTS.md              # Engineering constraints and verification checklist
 ```
 
 ---
 
-## 本地构建与测试
+## Getting Started
 
-修改 `project.yml`、Info.plist、entitlements 或资源结构后，先重新生成工程文件：
+### Prerequisites
+
+- Xcode 26+ (iOS 26.0+ SDK)
+- [XcodeGen](https://github.com/yonaskolb/XcodeGen) (only needed when modifying `project.yml` or targets)
+
+### Generate Project & Build
 
 ```bash
 xcodegen generate
-```
 
-### Debug 构建（iPhone 模拟器）
-
-```bash
 xcodebuild -project ALIVE.xcodeproj -scheme Alive \
   -destination 'platform=iOS Simulator,name=iPhone 17 Pro,OS=26.5' \
   -configuration Debug \
@@ -57,7 +100,7 @@ xcodebuild -project ALIVE.xcodeproj -scheme Alive \
   build
 ```
 
-### 运行单元测试（`AliveTests`）
+### Run Unit Tests (`AliveTests`)
 
 ```bash
 xcodebuild -project ALIVE.xcodeproj -scheme Alive \
@@ -69,8 +112,16 @@ xcodebuild -project ALIVE.xcodeproj -scheme Alive \
 
 ---
 
-## 相关文档
+## Privacy & Local-First Design
 
-- 产品需求规格：[PRD.md](PRD.md)
-- 设计与架构文档：[DESIGN.md](DESIGN.md)
-- 工程约束与验证清单：[AGENTS.md](AGENTS.md)
+- **100% On-Device**: All financial amounts, paydays, and expense records stay strictly inside the app's local SwiftData sandbox (`Library/Application Support/ALIVE/Database/Alive.store`).
+- **Zero Telemetry**: No accounts, no cloud sync, no network requests, no analytics, and no third-party SDKs.
+- **No App Group**: Live Activity state is pushed read-only via `ActivityContent`, while Dynamic Island intents execute directly in the App process.
+
+---
+
+## Documentation
+
+- [Product Requirements Document (PRD.md)](PRD.md)
+- [Design & Architecture Specification (DESIGN.md)](DESIGN.md)
+- [Engineering & Verification Guide (AGENTS.md)](AGENTS.md)
