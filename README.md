@@ -3,10 +3,11 @@
   <h1>ALIVE</h1>
   <p><strong>A minimalist personal daily budget app for iOS built around a single question: <em>"How much can I spend today?"</em></strong></p>
   <p>
-    <img src="https://img.shields.io/badge/Platform-iOS%2026.0%2B-0A84FF?style=flat-square" alt="Platform iOS 26.0+" />
-    <img src="https://img.shields.io/badge/Swift-6.0-F05138?style=flat-square" alt="Swift 6.0" />
-    <img src="https://img.shields.io/badge/UI-SwiftUI%20%2B%20Bento%20Grid-111111?style=flat-square" alt="SwiftUI Bento Grid" />
-    <img src="https://img.shields.io/badge/Storage-SwiftData%20Local--Only-30D158?style=flat-square" alt="Local Only" />
+    <img src="docs/badges/platform-ios.svg" alt="Platform iOS 26.0+" />
+    <img src="docs/badges/swift-6.svg" alt="Swift 6.0" />
+    <img src="docs/badges/ui-bento.svg" alt="SwiftUI Bento Grid" />
+    <img src="docs/badges/storage-local.svg" alt="Local Only" />
+    <a href="LICENSE"><img src="docs/badges/license-mit.svg" alt="MIT License" /></a>
   </p>
   <p>
     <strong>English</strong> | <a href="README.zh-CN.md">简体中文</a>
@@ -65,6 +66,17 @@ todayAvailable = todayBudget - todaySpent
 - **Frameworks**: SwiftUI, SwiftData, ActivityKit, WidgetKit, Swift Testing
 - **Project Generator**: XcodeGen ([project.yml](project.yml))
 
+```mermaid
+flowchart LR
+    App["Alive (App Process)"] -->|Read / Write| Store[("SwiftData Sandbox")]
+    App -->|Uses| Core["AliveCore (Domain & Math)"]
+    App -->|Pushes ContentState| LA["AliveWidgets (Live Activity Extension)"]
+    LA -->|LiveActivityIntent executes in App| App
+    LA -->|Deep Links| App
+```
+
+> **No App Group Required**: `Alive` is the single writer to SwiftData. `AliveWidgets` renders read-only `ContentState` snapshots pushed via `ActivityContent`, while Dynamic Island button intents execute directly inside the App process.
+
 ```text
 ALIVE/
 ├── Alive/                 # Main SwiftUI App (Screens, AppModel, DesignSystem, AppIcons)
@@ -72,8 +84,12 @@ ALIVE/
 ├── AliveWidgets/          # WidgetKit extension (Live Activity UI & Dynamic Island 2-step entry)
 ├── AliveTests/            # Swift Testing suite (42 unit tests across 3 suites)
 ├── Shared/                # Cross-target LiveActivityIntent definitions
-├── docs/screenshots/      # App screenshots for documentation
-└── project.yml            # XcodeGen specification
+├── docs/                  # Screenshots and self-hosted SVG badges
+├── .github/               # Issue/PR templates and GitHub Actions CI workflow
+├── project.yml            # XcodeGen specification
+├── CONTRIBUTING.md        # Contribution guide
+├── CHANGELOG.md           # Release notes
+└── LICENSE                # MIT License
 ```
 
 ---
@@ -83,23 +99,25 @@ ALIVE/
 ### Prerequisites
 
 - Xcode 26+ (iOS 26.0+ SDK)
-- [XcodeGen](https://github.com/yonaskolb/XcodeGen) (only needed when modifying `project.yml` or targets)
+- [XcodeGen](https://github.com/yonaskolb/XcodeGen)
 
-### Generate Project & Build
+### Running on Your Own Device
+
+To sign and install ALIVE on a physical iPhone with your own Apple Developer account, update `bundleIdPrefix` (and target bundle identifiers if needed) in [project.yml](project.yml) and regenerate the Xcode project:
 
 ```bash
 xcodegen generate
+```
 
+### Build & Run Unit Tests (`AliveTests`)
+
+```bash
 xcodebuild -project ALIVE.xcodeproj -scheme Alive \
   -destination 'platform=iOS Simulator,name=iPhone 17 Pro,OS=26.5' \
   -configuration Debug \
   -derivedDataPath artifacts/local-verification/DerivedData \
   build
-```
 
-### Run Unit Tests (`AliveTests`)
-
-```bash
 xcodebuild -project ALIVE.xcodeproj -scheme Alive \
   -destination 'platform=iOS Simulator,name=iPhone 17 Pro,OS=26.5' \
   -configuration Debug \
@@ -113,4 +131,10 @@ xcodebuild -project ALIVE.xcodeproj -scheme Alive \
 
 - **100% On-Device**: All financial amounts, paydays, and expense records stay strictly inside the app's local SwiftData sandbox (`Library/Application Support/ALIVE/Database/Alive.store`).
 - **Zero Telemetry**: No accounts, no cloud sync, no network requests, no analytics, and no third-party SDKs.
-- **No App Group**: Live Activity state is pushed read-only via `ActivityContent`, while Dynamic Island intents execute directly in the App process.
+
+---
+
+## Contributing & License
+
+Contributions are welcome! Please read [CONTRIBUTING.md](CONTRIBUTING.md) before opening a Pull Request.  
+Released under the [MIT License](LICENSE).

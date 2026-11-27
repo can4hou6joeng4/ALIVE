@@ -3,10 +3,11 @@
   <h1>ALIVE</h1>
   <p><strong>围绕「今天还可花」设计的极简 iOS 个人每日预算应用</strong></p>
   <p>
-    <img src="https://img.shields.io/badge/Platform-iOS%2026.0%2B-0A84FF?style=flat-square" alt="Platform iOS 26.0+" />
-    <img src="https://img.shields.io/badge/Swift-6.0-F05138?style=flat-square" alt="Swift 6.0" />
-    <img src="https://img.shields.io/badge/UI-SwiftUI%20%2B%20Bento%20Grid-111111?style=flat-square" alt="SwiftUI Bento Grid" />
-    <img src="https://img.shields.io/badge/Storage-SwiftData%20仅本地-30D158?style=flat-square" alt="Local Only" />
+    <img src="docs/badges/platform-ios.svg" alt="Platform iOS 26.0+" />
+    <img src="docs/badges/swift-6.svg" alt="Swift 6.0" />
+    <img src="docs/badges/ui-bento.svg" alt="SwiftUI Bento Grid" />
+    <img src="docs/badges/storage-local.svg" alt="Local Only" />
+    <a href="LICENSE"><img src="docs/badges/license-mit.svg" alt="MIT License" /></a>
   </p>
   <p>
     <a href="README.md">English</a> | <strong>简体中文</strong>
@@ -65,6 +66,17 @@
 - **核心框架**：SwiftUI、SwiftData、ActivityKit、WidgetKit、Swift Testing
 - **工程生成**：XcodeGen（[project.yml](project.yml)）
 
+```mermaid
+flowchart LR
+    App["Alive (App 主进程)"] -->|唯一读写| Store[("SwiftData 沙盒")]
+    App -->|领域计算| Core["AliveCore (核心框架)"]
+    App -->|下发 ContentState| LA["AliveWidgets (Live Activity 扩展)"]
+    LA -->|LiveActivityIntent 在 App 进程执行| App
+    LA -->|深链跳转| App
+```
+
+> **无 App Group 架构**：主 App 独占 SwiftData 写入；`AliveWidgets` 仅消费 `ActivityContent` 下发的只读状态，灵动岛按键动作由系统直接在 App 进程幂等执行。
+
 ```text
 ALIVE/
 ├── Alive/                 # 主 App（页面、AppModel、设计系统、应用图标资源）
@@ -72,8 +84,12 @@ ALIVE/
 ├── AliveWidgets/          # WidgetKit 扩展（Live Activity 与灵动岛两步记账视图）
 ├── AliveTests/            # Swift Testing 测试集（3 个 suite，共 42 个单元测试）
 ├── Shared/                # 跨进程共享意图定义（LiveActivityIntent）
-├── docs/screenshots/      # README 展示用应用内截图
-└── project.yml            # XcodeGen 工程配置源
+├── docs/                  # README 应用内截图与自托管 SVG 徽章
+├── .github/               # Issue/PR 模板与 GitHub Actions CI 工作流
+├── project.yml            # XcodeGen 工程配置源
+├── CONTRIBUTING.md        # 贡献指南
+├── CHANGELOG.md           # 版本更新记录
+└── LICENSE                # MIT 开源协议
 ```
 
 ---
@@ -83,23 +99,25 @@ ALIVE/
 ### 环境要求
 
 - Xcode 26+（iOS 26.0+ SDK）
-- [XcodeGen](https://github.com/yonaskolb/XcodeGen)（修改 `project.yml` 或 target 配置时使用）
+- [XcodeGen](https://github.com/yonaskolb/XcodeGen)
 
-### 生成工程与构建
+### 真机签名安装（修改 Bundle ID）
+
+如需使用个人 Apple 开发者账号在真机签名安装，请修改 [project.yml](project.yml) 中的 `bundleIdPrefix`（及各 target 的 Bundle Identifier），然后重新生成工程文件：
 
 ```bash
 xcodegen generate
+```
 
+### 构建与运行单元测试（`AliveTests`）
+
+```bash
 xcodebuild -project ALIVE.xcodeproj -scheme Alive \
   -destination 'platform=iOS Simulator,name=iPhone 17 Pro,OS=26.5' \
   -configuration Debug \
   -derivedDataPath artifacts/local-verification/DerivedData \
   build
-```
 
-### 运行单元测试（`AliveTests`）
-
-```bash
 xcodebuild -project ALIVE.xcodeproj -scheme Alive \
   -destination 'platform=iOS Simulator,name=iPhone 17 Pro,OS=26.5' \
   -configuration Debug \
@@ -113,4 +131,10 @@ xcodebuild -project ALIVE.xcodeproj -scheme Alive \
 
 - **纯本地沙盒**：金额、发薪日与支出记录仅保存在本机 SwiftData 数据库（`Library/Application Support/ALIVE/Database/Alive.store`）。
 - **零遥测与零联网**：无账号体系、无云同步、无网络请求、无分析埋点或任何第三方 SDK。
-- **无 App Group**：Live Activity 仅消费 App 通过 `ActivityContent` 下发的只读状态，岛内动作直接由系统在 App 进程执行。
+
+---
+
+## 参与贡献与开源协议
+
+欢迎提交 Issue 或 Pull Request，详情请先阅读 [CONTRIBUTING.md](CONTRIBUTING.md)。  
+本项目基于 [MIT License](LICENSE) 开源。

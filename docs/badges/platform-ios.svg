@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="122" height="22" role="img" aria-label="Platform: iOS 26.0+">
+  <rect width="62" height="22" rx="4" fill="#1C1C1E"/>
+  <rect x="58" width="64" height="22" rx="4" fill="#0A84FF"/>
+  <rect x="58" width="6" height="22" fill="#0A84FF"/>
+  <g fill="#FFFFFF" text-anchor="middle" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,Helvetica,Arial,sans-serif" font-size="11" font-weight="600">
+    <text x="30" y="15">Platform</text>
+    <text x="90" y="15">iOS 26.0+</text>
+  </g>
+</svg>

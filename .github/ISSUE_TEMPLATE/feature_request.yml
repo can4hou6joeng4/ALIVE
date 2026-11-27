@@ -1,0 +1,25 @@
+name: Feature Request
+description: Suggest an improvement aligned with ALIVE's minimalist daily budget scope
+title: "[Feature]: "
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: >
+        ALIVE is intentionally minimalist. Features such as cloud sync, categories,
+        or complex charts are out of scope, but refinements to daily budgeting,
+        accessibility, and Live Activity ergonomics are always welcome.
+  - type: textarea
+    id: problem
+    attributes:
+      label: What problem does this solve?
+      description: Describe the friction or gap you encountered.
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed solution
+      description: Describe how you envision this working cleanly within ALIVE.
+    validations:
+      required: true
